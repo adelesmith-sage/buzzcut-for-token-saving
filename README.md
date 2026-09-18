@@ -147,22 +147,26 @@ Rule 6 outranks the rest by construction: correctness, security, privacy and exp
 
 ## Measured results
 
-Eight synthetic tasks, each written so that an over-engineered solution is the tempting one. Every task ran **three times per condition** — once with no project instructions (`baseline`), once with Buzzcut — in isolated temporary Git repositories, with condition order alternated to cancel ordering effects. Aggregate figures use the 23 matched pairs where both conditions completed and passed their acceptance tests; the acceptance row reports all 24 runs per condition.
+Eight synthetic tasks, each written so that an over-engineered solution is the tempting one. Every task ran **three times per condition** — once with no project instructions (`baseline`), once with Buzzcut — in isolated temporary Git repositories, with condition order alternated to cancel ordering effects. Aggregate figures use the 23 matched pairs where both conditions completed and passed their acceptance tests; the acceptance row reports all 24 runs per condition. Per-repetition figures are in [eval/RESULTS.md](eval/RESULTS.md).
 
-| Measure | Baseline | Buzzcut | Change |
-| --- | ---: | ---: | ---: |
-| **Added lines** | 37.8 | 27.3 | **&minus;27.8%** |
-| Output tokens | 10,559 | 10,798 | +2.3% |
-| Fresh input tokens | 96,837 | 111,498 | +15.1% |
-| Price-weighted token cost | $0.3278 | $0.3571 | **+8.9%** |
-| Wall-clock time | 366.3s | 374.8s | +2.3% |
-| New files | 0 | 0 | no change |
-| New dependencies | 0 | 0 | no change |
-| Acceptance tests | 24/24 pass | 23/24 pass | one stall, see below |
+| Measure | Baseline | Buzzcut | Change (mean of 3) | Best run of 3 |
+| --- | ---: | ---: | ---: | ---: |
+| **Added lines** | 37.8 | 27.3 | **&minus;27.8%** | &minus;39.5% |
+| Output tokens | 10,559 | 10,798 | +2.3% | &minus;9.4% |
+| Fresh input tokens | 96,837 | 111,498 | +15.1% | +3.4% |
+| Price-weighted token cost | $0.3278 | $0.3571 | **+8.9%** | &minus;0.1% |
+| Wall-clock time | 366.3s | 374.8s | +2.3% | &minus;8.9% |
+| New files | 0 | 0 | no change | no change |
+| New dependencies | 0 | 0 | no change | no change |
+| Acceptance tests | 24/24 pass | 23/24 pass | one stall, see below | — |
 
-**What Buzzcut does:** it writes about a quarter less code, on 6 of the 8 tasks. That effect is the most robust thing in the data — it survived three repetitions, a Codex version change and a rewrite of the rules file.
+**Read the mean column, not the best column.** Every figure in `Best run of 3` comes from the *same* repetition &mdash; run 2 happened to be the most favourable on all five measures at once. A single repetition cannot make Buzzcut simultaneously write less code, think in fewer tokens and run faster; what it can do is catch a warmer cache and a quieter API. The best column is shown so the spread is visible, and because on a good day the token cost really does land at break-even. It is not the expected result.
 
-**What Buzzcut did not do in this run:** save tokens or time. Output and wall-clock time each rose 2.3%; fresh input rose 15.1% because the rules load on every request. On the indicative prices used by the harness, a task cost roughly **9% more** with Buzzcut than without.
+The two change columns are aggregated differently and will not reconcile by arithmetic: `Change` averages each task across its three repetitions, as the harness reports it, while `Best run of 3` totals the matched pairs within a single repetition. Taking the mean of the three per-repetition totals instead gives &minus;25.2% added lines and +11.5% cost, so the headline is not an artefact of the choice.
+
+**What Buzzcut does:** it writes about a quarter less code, on 6 of the 8 tasks. That effect is the most robust thing in the data — it survived three repetitions, a Codex version change and a rewrite of the rules file. It is also the only measure whose worst repetition (&minus;16.1%) still points the same way as its best.
+
+**What Buzzcut did not do in this run:** save tokens or time. Output and wall-clock time each rose 2.3%; fresh input rose 15.1% because the rules load on every request. On the indicative prices used by the harness, a task cost roughly **9% more** with Buzzcut than without — about a third of a penny.
 
 ### The one failure, and why it matters
 

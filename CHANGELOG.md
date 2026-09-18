@@ -9,6 +9,7 @@ All notable changes to Buzzcut are recorded here. This project follows [Semantic
 - Reduced the always-loaded guardrails from 5.48 KB to 3.99 KB while retaining all nine triggers, exceptions and examples. The execution guidance now requires one capability search across filenames and symbols before new code is added. The selectable agent prompt fell from 2.75 KB to 0.85 KB by referencing the canonical rules instead of repeating them.
 - Made price-weighted token cost the primary efficiency measure and added deterministic reuse-quality checks to every eval task.
 - Excluded failed or unpaired runs from aggregate comparisons so a stalled zero-line run cannot improve the code-reduction headline. The corrected three-repeat result is 27.8% fewer added lines and 8.9% higher price-weighted cost.
+- Added a `Best run of 3` column to the results table alongside the mean, with the spread it implies. All five best figures come from repetition 2, which indicates run-level variance (cache warmth, API load) rather than five independent Buzzcut effects, so the mean remains the headline.
 
 ### Optimization screen
 
