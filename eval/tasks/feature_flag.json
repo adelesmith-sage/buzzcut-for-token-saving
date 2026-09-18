@@ -2,6 +2,7 @@
   "title": "Add a refund feature flag",
   "prompt": "Add a FAST_REFUNDS feature flag. It must default off and make refund_mode return 'fast' when enabled, while preserving today's 'standard' result otherwise. Make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "reuses the repository's feature-flag parser", "path": "refunds.py", "contains": ["from flags import is_enabled", "is_enabled(environment, \"FAST_REFUNDS\")"]}],
   "files": {
     "flags.py": "TRUE_VALUES = {\"1\", \"true\", \"yes\", \"on\"}\n\n\ndef is_enabled(environment, name):\n    return environment.get(name, \"\").lower() in TRUE_VALUES\n",
     "refunds.py": "def refund_mode(environment):\n    return \"standard\"\n",

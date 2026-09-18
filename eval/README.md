@@ -10,11 +10,13 @@ Run all tasks from the repository root:
 python3 eval/run_eval.py
 ```
 
-Use `--task retry` to run one fixture (repeat the flag for several), or `--model` and `--reasoning` to pin another Codex configuration. `--timeout` caps each run, in seconds. `--rewrite-run <run id>` re-renders `RESULTS.md` from a stored `metrics.json` without calling Codex, which is how to pick up a reporting change without paying for the runs again.
+Use `--task retry` to run one fixture (repeat the flag for several), or `--model` and `--reasoning` to pin another Codex configuration. `--timeout` caps each run, in seconds. `--repeat N` runs every task N times per condition and reports means, which is the main defence against model nondeterminism. `--rewrite-run <run id>` re-renders `RESULTS.md` from a stored `metrics.json` without calling Codex, which is how to pick up a reporting change without paying for the runs again.
+
+A full pass is `tasks x 2 conditions x repeats` Codex invocations, so `--repeat 3` over eight tasks is 48 runs and takes roughly an hour.
 
 Each condition runs in a disposable temporary Git repository, and condition order alternates by task so that ordering effects cancel. The comparable summary is written to [RESULTS.md](RESULTS.md). Per-run output goes to `runs/<run id>/`, where `metrics.json` is tracked as evidence and the raw JSONL, stderr and patches beside it stay local.
 
-The harness measures textual lines added, new files, declared dependencies, wall-clock time, whether the fixture's acceptance tests pass, and tokens split into three classes.
+The harness measures textual lines added, new files, declared dependencies, wall-clock time, whether the fixture's acceptance tests pass, whether it reuses the intended repository capability, and tokens split into three classes.
 
 ## Why tokens are split
 
@@ -30,4 +32,6 @@ These measurements describe this small sample only; they are not a statistically
 
 ## Adding a task
 
-Add a JSON file to `tasks/` with `title`, `prompt`, `test_command` and `files` (a path-to-contents map that seeds the temporary repository). A good task is one where the over-engineered solution is the tempting one, and where the acceptance tests pass for both a minimal and a bloated implementation — otherwise you are measuring correctness, not restraint.
+Add a JSON file to `tasks/` with `title`, `prompt`, `test_command`, `quality_checks` and `files` (a path-to-contents map that seeds the temporary repository). Each quality check names a file and required or forbidden text so the harness can distinguish a passing duplicate implementation from reuse of the repository's intended capability.
+
+A good task is one where the over-engineered solution is tempting and the acceptance tests can pass for both a minimal and a bloated implementation. Define the reuse expectation separately in `quality_checks`; otherwise you are measuring only correctness, not restraint.

@@ -1,0 +1,64 @@
+[
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 44.62,
+    "usage": {
+      "input_tokens": 92609,
+      "cached_input_tokens": 81024,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1104,
+      "reasoning_output_tokens": 397
+    },
+    "repeat": 1
+  },
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 45.61,
+    "usage": {
+      "input_tokens": 105863,
+      "cached_input_tokens": 93824,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1233,
+      "reasoning_output_tokens": 325
+    },
+    "repeat": 1
+  }
+]

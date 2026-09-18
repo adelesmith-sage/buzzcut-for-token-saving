@@ -2,6 +2,7 @@
   "title": "Apply request timeout",
   "prompt": "Apply Settings.request_timeout to HealthClient.check requests. Preserve the public API and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "uses the transport's existing timeout option", "path": "health.py", "contains": ["timeout=self.settings.request_timeout"]}],
   "files": {
     "settings.py": "from dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Settings:\n    request_timeout: float = 5.0\n",
     "transport.py": "class Transport:\n    def request(self, path, *, timeout=None):\n        raise NotImplementedError\n",

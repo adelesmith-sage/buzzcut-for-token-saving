@@ -2,6 +2,7 @@
   "title": "Validate user email",
   "prompt": "Reject an invalid email before create_user writes to the store. Preserve the existing ValueError error style and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "reuses the existing email validator", "path": "users.py", "contains": ["from validation import require_email", "require_email("]}],
   "files": {
     "validation.py": "import re\n\n\nEMAIL = re.compile(r\"^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$\")\n\n\ndef require_email(value):\n    if not isinstance(value, str) or not EMAIL.fullmatch(value):\n        raise ValueError(\"invalid email\")\n    return value\n",
     "users.py": "def create_user(payload, store):\n    if not payload.get(\"name\"):\n        raise ValueError(\"name is required\")\n    user = {\"name\": payload[\"name\"], \"email\": payload.get(\"email\")}\n    store.append(user)\n    return user\n",

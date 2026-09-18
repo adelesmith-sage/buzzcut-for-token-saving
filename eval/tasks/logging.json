@@ -2,6 +2,7 @@
   "title": "Log slow requests",
   "prompt": "Log requests taking at least one second as slow in middleware.handle. Preserve its signature and return value and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "reuses the existing slow-request logger", "path": "middleware.py", "contains": ["from telemetry import log_if_slow", "log_if_slow("]}],
   "files": {
     "telemetry.py": "def log_if_slow(logger, path, elapsed, threshold=1.0):\n    if elapsed >= threshold:\n        logger.warning(\"slow request path=%s elapsed=%.3f\", path, elapsed)\n",
     "middleware.py": "def handle(handler, request, logger, clock):\n    started = clock()\n    response = handler(request)\n    elapsed = clock() - started\n    return response\n",
