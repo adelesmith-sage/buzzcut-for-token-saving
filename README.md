@@ -9,7 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Sage-internal-informational" alt="Sage internal">
   <img src="https://img.shields.io/badge/code%20written-28%25%20less-success" alt="28 percent less code written">
-  <img src="https://img.shields.io/badge/token%20cost-%2B0.4%C2%A2%20per%20task-lightgrey" alt="Token cost 0.4 cents more per task">
+  <img src="https://img.shields.io/badge/token%20cost-27%25%20less%20(screen)-success" alt="Token cost 27 percent lower in the latest wrapper screen">
   <img src="https://img.shields.io/badge/works%20with-Copilot%20%2B%20Codex-blue" alt="Works with GitHub Copilot and Codex">
 </p>
 
