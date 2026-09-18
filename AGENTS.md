@@ -1,74 +1,25 @@
 # Buzzcut
 
-Make the smallest correct change. Buzzcut adds code-minimisation behaviour to the Aditi harness and repository guidance; do not restate or weaken either. Correctness, security, privacy and explicit requirements beat brevity.
+Make the smallest correct change. Buzzcut supplements Aditi and repository rules; do not repeat or weaken them. Correctness, security, privacy and explicit requirements outrank brevity.
 
-Apply these rules in order. Stop when the request is fully satisfied. Batch the narrow searches and reads needed to find the owner, existing implementation, callers and relevant test. Once the smallest correct change is clear, implement it; do not keep exploring hypothetical alternatives. For routine work, give at most one brief progress update, run the narrowest relevant check, and report only changed files, verification and material assumptions.
+Before adding code, search file names and symbols once using the request's capability terms, then trace only the touched flow, callers and matches. Batch focused reads; edit once the owner, reusable capability and check are clear. Do not reread files, dump broad output or explore hypothetical designs. Run the narrowest check once; retry only after a real failure.
 
-## 1. Fix the shared cause
+Use terse technical prose. Omit acknowledgements, task restatement, routine progress, unrequested options and recap. In the final response give only changed files, verification, and material assumptions or blockers. Keep code, commands, paths, exact errors, security warnings and approval questions complete.
 
-- **When:** the symptom can originate in shared code, or affects more than one caller.
-- **Do:** trace the flow and callers; change the lowest shared point that owns the faulty behaviour.
-- **Unless:** the behaviour is intentionally caller-specific, or the shared point carries unrelated contracts.
-- **Good / bad:** correct the shared date parser / patch the displayed date in every screen.
+## Nine rules
 
-## 2. Reuse before adding
-
-- **When:** the repository, language, standard library, platform, framework or an installed dependency already does the job.
-- **Do:** call or extend it. If the behaviour already exists, say so and change nothing.
-- **Unless:** its contract differs, it is unsafe here, or extending it would break callers.
-- **Good / bad:** pass the client's existing `retries=2` / add a second retry helper beside it.
-
-## 3. Add no dependency by default
-
-- **When:** a solution would add a package, service, build tool or runtime dependency.
-- **Do:** use repository or platform capabilities. If a dependency is still needed, name it and explain why existing capabilities cannot do it.
-- **Unless:** the user asked for it, or it is needed for security, standards compliance or a protocol you should not implement locally.
-- **Good / bad:** the standard library's CSV writer / a CSV package for basic rows.
-
-## 4. Minimise the change surface
-
-- **When:** the task fits in existing code without a new abstraction, file or configuration path.
-- **Do:** edit the fewest files and add the least code that keeps behaviour clear; prefer deletion when equivalent.
-- **Unless:** architecture, a generated-file or security boundary requires separation, or several current implementations already need one shared abstraction.
-- **Good / bad:** one branch in the existing handler / an interface, factory and implementation for one branch.
-
-## 5. Require evidence for extra machinery
-
-- **When:** a change would add retries, logging, caching, feature flags, configuration switches, extension points or extra error paths beyond the acceptance criteria.
-- **Do:** omit it unless repository evidence or an explicit requirement shows it is needed.
-- **Unless:** the user asked for the robustness, or a documented reliability, security or operational requirement demands it.
-- **Good / bad:** the requested timeout via the existing client option / also backoff, a circuit breaker and metrics.
-
-## 6. Preserve required protections
-
-- **When:** a smaller solution would drop trust-boundary validation, data-loss protection, security, privacy, accessibility, compliance or explicitly requested behaviour.
-- **Do:** keep the protection; minimise only the code around it.
-- **Unless:** the same guarantee is already enforced at an earlier authoritative boundary.
-- **Good / bad:** validate email at the API boundary with the existing validator / rely on browser validation and delete the API check.
-
-## 7. Follow the local contract
-
-- **When:** several implementations are equally small and correct.
-- **Do:** match existing naming, control flow, error handling, imports and comment style; comment only a non-obvious reason or constraint.
-- **Unless:** the local pattern causes the defect, breaks a requirement, or is being replaced.
-- **Good / bad:** return the service's existing `NotFound` / add a second error hierarchy for one endpoint.
-
-## 8. Verify proportionately
-
-- **When:** the change has non-trivial logic or fixes a reproducible regression.
-- **Do:** add the smallest check in the existing test mechanism that fails without the change, then run the narrowest relevant checks.
-- **Unless:** it is documentation, a trivial static value, or already covered by a check you run.
-- **Good / bad:** one regression case in the current test file / a new test framework for one assertion.
-
-## 9. Mark deliberate limits only
-
-- **When:** the solution knowingly omits a real case until a specific future condition occurs.
-- **Do:** record it in a normal comment: `buzzcut: <current limit>; replace when <specific condition>`.
-- **Unless:** there is no known limit or no concrete replacement condition.
-- **Good / bad:** `# buzzcut: single region; replace when a second region is configured` / `# TODO: make this better`.
+1. **Fix the shared cause.** If shared code owns the symptom or several callers are affected, fix the lowest shared owner and inspect its callers. Exception: caller-specific behaviour or incompatible contracts. Example: fix the shared parser; do not patch every screen.
+2. **Reuse before adding.** If the repository, language, standard library, platform, framework or an installed dependency does the job, call or extend it; if behaviour is already correct, change nothing. Exception: unsafe or incompatible contracts. Example: pass existing `retries=2`; do not add a retry wrapper.
+3. **Add no dependency by default.** If a solution adds a package, service or build tool, use existing capabilities or state why none works. Exception: an explicit request or required security, standard or protocol implementation. Example: use the standard CSV writer; do not add a CSV package for basic rows.
+4. **Minimise the surface.** If the change fits existing code, touch the fewest files and add the least clear code; prefer deletion when equivalent. Exception: required generation, security boundaries or several current implementations. Example: add one branch; do not add an interface and factory for it.
+5. **Demand evidence for machinery.** Omit unrequested retries, logging, caching, flags, configuration, extension points and extra error paths. Exception: acceptance criteria or documented reliability, security or operations evidence requires them. Example: add the requested timeout; do not also add backoff, a breaker and metrics.
+6. **Preserve protections.** Never remove boundary validation, data-loss protection, security, privacy, accessibility, compliance or requested behaviour to save code. Exception: the same guarantee exists at an earlier authoritative boundary. Example: keep the API validator; browser validation alone is insufficient.
+7. **Follow the local contract.** Among equally small correct options, match local naming, flow, errors, imports and comment style. Exception: that pattern caused the defect or violates the request. Example: reuse `NotFound`; do not create a second error hierarchy.
+8. **Verify proportionately.** For non-trivial logic or a regression, add the smallest check in the existing test mechanism and run the narrowest relevant checks. Exception: trivial static or documentation changes, or existing coverage. Example: add one current-suite case; do not introduce a test framework.
+9. **Mark real limits only.** If the solution deliberately omits a known case, comment `buzzcut: <current limit>; replace when <specific condition>`. Exception: no known limit or trigger. Example: `# buzzcut: single region; replace when a second is configured`; not `# TODO: improve`.
 
 ## Sage requirements
 
-- **AI labels:** label AI-assisted code using the format in Sage's GitHub Copilot guidance. If it is unavailable, ask; do not invent one.
-- **Sensitive data:** never put customer data, partner credentials, client IDs, tokens, production secrets or confidential repository content in a prompt, example or code. Use synthetic placeholders and Sage-approved tooling. There is no exception.
-- **Third-party code:** when output resembles third-party or open-source code, complete the Open Source Procedure licence check before accepting it.
+- Label AI-assisted code using Sage's GitHub Copilot format. If unavailable, ask; do not invent it.
+- Never put customer data, credentials, IDs, tokens, production secrets or confidential source in prompts or examples; use synthetic data and approved tooling.
+- Licence-check third-party or open-source-like output through the Open Source Procedure before accepting it.

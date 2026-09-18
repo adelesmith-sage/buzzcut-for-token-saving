@@ -318,9 +318,9 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         f"Codex CLI: `{cli_version}`  ",
         f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning  ",
         f"Repetitions: {repeats} per condition  ",
-        "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`.",
+        "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`; aggregate changes use only matched pairs where both agents completed and passed acceptance tests.",
         "",
-        "Token classes are reported separately because they behave differently. `Output` is what the agent writes, and is the figure Buzzcut is designed to move. `Fresh input` is uncached prompt content, which Buzzcut *increases* because its rules are loaded on every request. `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",
+        "Price-weighted token cost is the primary efficiency measure. Token classes are also reported separately: `Output` is what the agent writes; `Fresh input` is uncached prompt content and can rise because Buzzcut's rules load on every request; `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",
         "",
         "| Task | Condition | Added lines | New files | New deps | Output | Fresh input | Wall time | Tests | Quality |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
@@ -328,18 +328,48 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
     for task, condition in pairs:
         rows = rows_for(task, condition)
         passed = sum(1 for row in rows if row["tests_passed"] and not row["exit_code"])
-        quality = sum(1 for row in rows if row.get("quality_passed", True))
+        quality = (
+            f"{sum(1 for row in rows if row['quality_passed'])}/{len(rows)}"
+            if all("quality_passed" in row for row in rows)
+            else "n/a"
+        )
         lines.append(
             f"| {rows[0]['title']} | {condition} | {mean(rows, lambda r: r['added_lines']):.1f} | "
             f"{mean(rows, lambda r: len(r['new_files'])):.1f} | {mean(rows, lambda r: len(r['new_dependencies'])):.1f} | "
             f"{mean(rows, lambda r: token_split(r['usage'])['output']):.0f} | "
             f"{mean(rows, lambda r: token_split(r['usage'])['fresh_input']):.0f} | "
-            f"{mean(rows, lambda r: r['wall_seconds']):.2f}s | {passed}/{len(rows)} | {quality}/{len(rows)} |"
+            f"{mean(rows, lambda r: r['wall_seconds']):.2f}s | {passed}/{len(rows)} | {quality} |"
         )
+
+    successful_repeats = {
+        (task, repeat)
+        for task, _ in pairs
+        for repeat in range(1, repeats + 1)
+        if all(
+            any(
+                row["task"] == task
+                and row["condition"] == condition
+                and row.get("repeat", 1) == repeat
+                and row["tests_passed"]
+                and not row["exit_code"]
+                for row in results
+            )
+            for condition in ("baseline", "buzzcut")
+        )
+    }
 
     totals: dict[str, dict[str, float]] = {}
     for condition in ("baseline", "buzzcut"):
-        per_task = [rows_for(task, condition) for task, cond in pairs if cond == condition]
+        per_task = [
+            [
+                row
+                for row in rows_for(task, condition)
+                if (task, row.get("repeat", 1)) in successful_repeats
+            ]
+            for task, cond in pairs
+            if cond == condition
+        ]
+        per_task = [rows for rows in per_task if rows]
         totals[condition] = {
             "added_lines": sum(mean(rows, lambda r: r["added_lines"]) for rows in per_task),
             "new_files": sum(mean(rows, lambda r: len(r["new_files"])) for rows in per_task),
@@ -370,9 +400,18 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
     failures = [
         f"{row['task']}/{row['condition']}#{row.get('repeat', 1)}"
         for row in results
-        if not row["tests_passed"] or not row.get("quality_passed", True) or row["exit_code"]
+        if not row["tests_passed"] or row["exit_code"]
     ]
-    lines.append(f"- unsuccessful runs: {', '.join(failures) if failures else 'none'}")
+    quality_misses = [
+        f"{row['task']}/{row['condition']}#{row.get('repeat', 1)}"
+        for row in results
+        if row.get("quality_passed") is False
+    ]
+    lines.append(f"- unsuccessful agent runs: {', '.join(failures) if failures else 'none'}")
+    quality_summary = (
+        ", ".join(quality_misses) if quality_misses else "none"
+    ) if any("quality_passed" in row for row in results) else "not measured in this run"
+    lines.append(f"- reuse-quality misses: {quality_summary}")
     lines.extend([
         "",
         "`Added lines` counts textual additions in the final Git diff, including tests. Price-weighted cost uses indicative gpt-5-class list rates (fresh input $1.25, cached input $0.125, output $10.00 per million tokens) to weight the token classes against each other; it is not a billing statement. `metrics.json` for this run is tracked under `eval/runs/<run id>/`; the raw JSONL, stderr and patches beside it stay local and are ignored.",

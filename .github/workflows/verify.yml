@@ -48,9 +48,11 @@ jobs:
               except json.JSONDecodeError as exc:
                   errors.append(f"{task}: invalid JSON ({exc})")
                   continue
-              missing = {"title", "prompt", "test_command", "files"} - data.keys()
+              missing = {"title", "prompt", "test_command", "quality_checks", "files"} - data.keys()
               if missing:
                   errors.append(f"{task}: missing key(s) {', '.join(sorted(missing))}")
+              elif not data["quality_checks"]:
+                  errors.append(f"{task}: quality_checks must not be empty")
 
           for error in errors:
               print(f"::error::{error}")

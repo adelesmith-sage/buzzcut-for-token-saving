@@ -2,6 +2,18 @@
 
 All notable changes to Buzzcut are recorded here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Reduced the always-loaded guardrails from 5.48 KB to 3.99 KB while retaining all nine triggers, exceptions and examples. The execution guidance now requires one capability search across filenames and symbols before new code is added. The selectable agent prompt fell from 2.75 KB to 0.85 KB by referencing the canonical rules instead of repeating them.
+- Made price-weighted token cost the primary efficiency measure and added deterministic reuse-quality checks to every eval task.
+- Excluded failed or unpaired runs from aggregate comparisons so a stalled zero-line run cannot improve the code-reduction headline. The corrected three-repeat result is 27.8% fewer added lines and 8.9% higher price-weighted cost.
+
+### Optimization screen
+
+- A one-task, one-repeat cache screen of the compact rules measured 8.8% lower price-weighted token cost and 10.5% fewer output tokens, with identical two-line implementations and both acceptance and reuse checks passing. This is directional evidence only; the repeated eight-task result remains the headline until the compact rules receive a full rerun.
+
 ## 1.0.0
 
 First release intended for use across teams.
@@ -16,9 +28,9 @@ First release intended for use across teams.
 
 ### Results
 
-Measured over eight tasks with three repetitions per condition (48 runs), recorded in [eval/RESULTS.md](eval/RESULTS.md): Buzzcut produced **27.9% fewer added lines**, on 6 of 8 tasks, and added no files or dependencies.
+Measured over eight tasks with three repetitions per condition (48 runs), recorded in [eval/RESULTS.md](eval/RESULTS.md): Buzzcut produced **27.8% fewer added lines** across matched successful runs, on 6 of 8 tasks, and added no files or dependencies.
 
-It did not reduce tokens or time. Output tokens were flat (+1.0%), fresh input rose 21.2% because the rules load on every request, and wall-clock time was unchanged (0.0%). Price-weighted token cost rose 9.2%.
+It did not reduce tokens or time. Output tokens and wall-clock time each rose 2.3%; fresh input rose 15.1% because the rules load on every request. Price-weighted token cost rose 8.9%.
 
 One of 24 Buzzcut runs stalled without making a change, blocked by the AI-label rule when the Sage label format was absent from the repository.
 

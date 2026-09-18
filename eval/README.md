@@ -16,7 +16,7 @@ A full pass is `tasks x 2 conditions x repeats` Codex invocations, so `--repeat 
 
 Each condition runs in a disposable temporary Git repository, and condition order alternates by task so that ordering effects cancel. The comparable summary is written to [RESULTS.md](RESULTS.md). Per-run output goes to `runs/<run id>/`, where `metrics.json` is tracked as evidence and the raw JSONL, stderr and patches beside it stay local.
 
-The harness measures textual lines added, new files, declared dependencies, wall-clock time, whether the fixture's acceptance tests pass, and tokens split into three classes.
+The harness measures textual lines added, new files, declared dependencies, wall-clock time, whether the fixture's acceptance tests pass, whether it reuses the intended repository capability, and tokens split into three classes.
 
 ## Why tokens are split
 
@@ -32,4 +32,6 @@ These measurements describe this small sample only; they are not a statistically
 
 ## Adding a task
 
-Add a JSON file to `tasks/` with `title`, `prompt`, `test_command` and `files` (a path-to-contents map that seeds the temporary repository). A good task is one where the over-engineered solution is the tempting one, and where the acceptance tests pass for both a minimal and a bloated implementation — otherwise you are measuring correctness, not restraint.
+Add a JSON file to `tasks/` with `title`, `prompt`, `test_command`, `quality_checks` and `files` (a path-to-contents map that seeds the temporary repository). Each quality check names a file and required or forbidden text so the harness can distinguish a passing duplicate implementation from reuse of the repository's intended capability.
+
+A good task is one where the over-engineered solution is tempting and the acceptance tests can pass for both a minimal and a bloated implementation. Define the reuse expectation separately in `quality_checks`; otherwise you are measuring only correctness, not restraint.

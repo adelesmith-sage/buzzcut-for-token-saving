@@ -27,7 +27,7 @@ Coding agents are rewarded for producing code, so they produce too much of it: a
 
 Buzzcut is a drop-in instruction set that makes them stop. It is **nine rules, one agent and three review commands** — a handful of Markdown files. No extension to install, no service to run, no dependency to add.
 
-In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.9% fewer added lines** with no loss of correctness. It did **not** reduce tokens or wall-clock time — it costs about **9% more** per task. [See the numbers, including what did not work &rarr;](#measured-results)
+In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% fewer added lines** across matched successful runs. It did **not** reduce tokens or wall-clock time in that run — it cost about **9% more** per task. [See the numbers, including what did not work &rarr;](#measured-results)
 
 ## Works with
 
@@ -147,22 +147,22 @@ Rule 6 outranks the rest by construction: correctness, security, privacy and exp
 
 ## Measured results
 
-Eight synthetic tasks, each written so that an over-engineered solution is the tempting one. Every task ran **three times per condition** — once with no project instructions (`baseline`), once with Buzzcut — in isolated temporary Git repositories, with condition order alternated to cancel ordering effects. Figures are means over the three repetitions.
+Eight synthetic tasks, each written so that an over-engineered solution is the tempting one. Every task ran **three times per condition** — once with no project instructions (`baseline`), once with Buzzcut — in isolated temporary Git repositories, with condition order alternated to cancel ordering effects. Aggregate figures use the 23 matched pairs where both conditions completed and passed their acceptance tests; the acceptance row reports all 24 runs per condition.
 
 | Measure | Baseline | Buzzcut | Change |
 | --- | ---: | ---: | ---: |
-| **Added lines** | 37.0 | 26.7 | **&minus;27.9%** |
-| Output tokens | 10,477 | 10,577 | +1.0% |
-| Fresh input tokens | 94,186 | 114,109 | +21.2% |
-| Price-weighted token cost | $0.3243 | $0.3541 | **+9.2%** |
-| Wall-clock time | 367.2s | 367.3s | 0.0% |
+| **Added lines** | 37.8 | 27.3 | **&minus;27.8%** |
+| Output tokens | 10,559 | 10,798 | +2.3% |
+| Fresh input tokens | 96,837 | 111,498 | +15.1% |
+| Price-weighted token cost | $0.3278 | $0.3571 | **+8.9%** |
+| Wall-clock time | 366.3s | 374.8s | +2.3% |
 | New files | 0 | 0 | no change |
 | New dependencies | 0 | 0 | no change |
 | Acceptance tests | 24/24 pass | 23/24 pass | one stall, see below |
 
 **What Buzzcut does:** it writes about a quarter less code, on 6 of the 8 tasks. That effect is the most robust thing in the data — it survived three repetitions, a Codex version change and a rewrite of the rules file.
 
-**What Buzzcut does not do:** save tokens or time. Output tokens are flat. Fresh input rises 21% because the rules are loaded into every request. Wall-clock time is unchanged to within a tenth of a second across 48 runs. On list prices, a task costs roughly **9% more** with Buzzcut than without.
+**What Buzzcut did not do in this run:** save tokens or time. Output and wall-clock time each rose 2.3%; fresh input rose 15.1% because the rules load on every request. On the indicative prices used by the harness, a task cost roughly **9% more** with Buzzcut than without.
 
 ### The one failure, and why it matters
 
@@ -184,9 +184,24 @@ An earlier version of this README claimed 21.7% fewer output tokens and 37.0% le
 
 | Claim | Single run | Three runs | Verdict |
 | --- | ---: | ---: | --- |
-| Output tokens | &minus;21.7% | +1.0% | withdrawn |
-| Wall-clock time | &minus;37.0% | 0.0% | withdrawn — it was service latency |
-| Added lines | &minus;21.2% | &minus;27.9% | holds, and strengthened |
+| Output tokens | &minus;21.7% | +2.3% | withdrawn |
+| Wall-clock time | &minus;37.0% | +2.3% | withdrawn — it was service latency |
+| Added lines | &minus;21.2% | &minus;27.8% | holds, and strengthened |
+
+### Cost-first optimization screen
+
+After the repeated run, the always-loaded rules were cut from 5.48 KB to 3.99 KB and repository discovery was made explicit: search the requested capability across filenames and symbols once before adding code. A one-task cache screen then recorded:
+
+| Measure | Baseline | Buzzcut | Change |
+| --- | ---: | ---: | ---: |
+| Added lines | 2 | 2 | no change |
+| Output tokens | 1,233 | 1,104 | **&minus;10.5%** |
+| Price-weighted token cost | $0.0391 | $0.0356 | **&minus;8.8%** |
+| Acceptance and reuse checks | pass | pass | no quality loss detected |
+
+This is an **optimization screen: one task, one repetition**, not a replacement for the repeated result above. Its cost reduction is in the same range as [Caveman's instruction-only external result](https://github.com/JuliusBrussee/caveman#what-the-skill-saves-writing-less), but the harnesses differ. [Ponytail's agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/main/benchmarks/results/2026-06-18-agentic.md) reports &minus;20% cost on feature tasks and &minus;7% on safety tasks using a different agent, model, repository and four repetitions; direct parity cannot be claimed. A full repeated Buzzcut rerun is required before promoting the screen to the headline.
+
+Screen metrics: [eval/runs/20260918T104916Z/metrics.json](eval/runs/20260918T104916Z/metrics.json).
 
 The lesson is worth more than the numbers: with one run per condition, normal variance on these tasks is larger than the effect being measured. Use `--repeat` before believing anything here.
 
