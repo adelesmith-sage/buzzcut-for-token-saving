@@ -8,10 +8,11 @@ First release intended for use across teams.
 
 ### Added
 
-- Nine ordered guardrails in `AGENTS.md` and `.github/copilot-instructions.md`, each stating its trigger, required action, exception and a paired good/bad example.
+- Nine ordered guardrails in `AGENTS.md` and `.github/copilot-instructions.md`, each stating its trigger, required action, exception and a paired good/bad example. The two files are byte-identical so that GitHub Copilot and Codex apply the same rules.
+- A selectable **Buzzcut** agent (`.github/agents/buzzcut.agent.md`) for changes that especially need to stay small; it reports what it deliberately left out.
 - Three read-only Agent Skills: `/buzzcut-review` for the current diff, `/buzzcut-audit` for a folder or repository, and `/buzzcut-debt` for recorded `buzzcut:` limits.
 - A standard-library-only paired Codex eval harness with eight over-engineering-prone tasks, measuring added lines, new files, declared dependencies, tokens, wall time and acceptance-test results.
-- `README.md` with installation, rollout guidance and the measured results; `LICENSE` (MIT); and a `verify` workflow that fails if the two rule files drift or if a skill or task file is malformed.
+- `README.md` with installation for repository-wide and personal use, rollout guidance and the measured results; `LICENSE` (MIT); and a `verify` workflow that fails if the two rule files drift or if an agent, skill or task file is malformed.
 
 ### Results
 

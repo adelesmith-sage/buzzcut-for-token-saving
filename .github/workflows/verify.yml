@@ -35,6 +35,13 @@ jobs:
               if not fields.get("description"):
                   errors.append(f"{skill}: missing description")
 
+          for agent in sorted(pathlib.Path(".github/agents").glob("*.agent.md")):
+              front = re.match(r"---\n(.*?)\n---\n", agent.read_text(encoding="utf-8"), re.DOTALL)
+              if not front:
+                  errors.append(f"{agent}: missing YAML frontmatter")
+              elif not re.search(r"^description:\s*\S", front.group(1), re.MULTILINE):
+                  errors.append(f"{agent}: missing description")
+
           for task in sorted(pathlib.Path("eval/tasks").glob("*.json")):
               try:
                   data = json.loads(task.read_text(encoding="utf-8"))
