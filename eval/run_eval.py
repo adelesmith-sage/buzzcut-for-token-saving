@@ -25,6 +25,7 @@ DEFAULT_REASONING = "high"
 # Indicative gpt-5-class list rates in USD per million tokens, used only to weight
 # the three token classes against each other. Not a billing statement.
 PRICE_PER_MILLION = {"fresh_input": 1.25, "cached_input": 0.125, "output": 10.0}
+SCALES = {"micro": 0, "medium": 1000, "enterprise": 5000}
 
 
 def token_split(usage: dict[str, int]) -> dict[str, int]:
@@ -71,11 +72,39 @@ def run(
     )
 
 
-def materialise(task: dict[str, Any], destination: Path, with_buzzcut: bool) -> str:
+def inflate(destination: Path, file_count: int) -> None:
+    """Grow the fixture into a deep multi-module tree so discovery cost is realistic."""
+    domains = ("billing", "identity", "ledger", "payroll", "reporting", "tax", "sync", "audit")
+    per_package = 40
+    for index in range(file_count):
+        domain = domains[index % len(domains)]
+        package = f"pkg_{index // per_package:04d}"
+        path = destination / "src" / domain / package / f"service_{index:05d}.py"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            f'"""Generated {domain} service {index}."""\n\n'
+            f"DEFAULT_LIMIT = {index % 97 + 1}\n\n\n"
+            f"class Service{index:05d}:\n"
+            f"    def __init__(self, session):\n"
+            f"        self.session = session\n\n"
+            f"    def fetch(self, record_id):\n"
+            f"        return self.session.get({index}, record_id)\n\n"
+            f"    def summarise(self, rows):\n"
+            f"        return sum(row.amount for row in rows[:DEFAULT_LIMIT])\n",
+            encoding="utf-8",
+        )
+
+
+def materialise(
+    task: dict[str, Any], destination: Path, with_buzzcut: bool, scale_files: int = 0
+) -> str:
     for relative, content in task["files"].items():
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
+
+    if scale_files:
+        inflate(destination, scale_files)
 
     (destination / ".gitignore").write_text("__pycache__/\n*.py[cod]\n", encoding="utf-8")
     shutil.copy2(ROOT / "SAGE_AI_GUIDANCE.md", destination / "SAGE_AI_GUIDANCE.md")
@@ -287,6 +316,8 @@ def run_condition(
     model: str,
     reasoning: str,
     timeout: int,
+    scale_files: int = 0,
+    tool_budget: bool = True,
 ) -> dict[str, Any]:
     task = json.loads(task_path.read_text(encoding="utf-8"))
     with (
@@ -294,9 +325,9 @@ def run_condition(
         tempfile.TemporaryDirectory(prefix="buzzcut-tool-budget-") as wrapper_temp,
     ):
         worktree = Path(temp)
-        base = materialise(task, worktree, condition == "buzzcut")
+        base = materialise(task, worktree, condition == "buzzcut", scale_files)
         dependencies_before = dependency_snapshot(worktree)
-        prompt = task["prompt"]
+        prompt = task["prompt"] + "\n\nSynthetic evaluation fixture: in-source AI labels are not required."
         command = [
             "codex",
             "exec",
@@ -319,7 +350,7 @@ def run_condition(
                 command,
                 worktree,
                 timeout=timeout,
-                env=tool_budget_environment(Path(wrapper_temp)),
+                env=tool_budget_environment(Path(wrapper_temp)) if tool_budget else None,
             )
             timed_out = False
         except subprocess.TimeoutExpired as error:
@@ -509,6 +540,17 @@ def main() -> int:
     parser.add_argument("--reasoning", default=os.environ.get("CODEX_REASONING", DEFAULT_REASONING))
     parser.add_argument("--timeout", type=int, default=600, help="Seconds allowed per Codex run")
     parser.add_argument("--repeat", type=int, default=1, help="Repetitions per condition; results are reported as means")
+    parser.add_argument(
+        "--scale",
+        choices=sorted(SCALES),
+        default="micro",
+        help="Fixture size; enterprise pads each repository with synthetic modules",
+    )
+    parser.add_argument(
+        "--no-tool-budget",
+        action="store_true",
+        help="Disable the eval-only shell output wrappers, measuring the instructions alone",
+    )
     parser.add_argument("--rewrite-run", help="Regenerate RESULTS.md from a stored run's metrics.json instead of calling Codex")
     args = parser.parse_args()
 
@@ -540,6 +582,11 @@ def main() -> int:
     run_dir = ROOT / "eval" / "runs" / run_id
     results: list[dict[str, Any]] = []
     total = len(task_paths) * 2 * args.repeat
+    scale_files = SCALES[args.scale]
+    tool_budget = not args.no_tool_budget
+    if scale_files:
+        print(f"Scale: {args.scale} ({scale_files:,} synthetic modules per fixture)", flush=True)
+    print(f"Shell output wrappers: {'on' if tool_budget else 'off'}", flush=True)
     for repeat in range(1, args.repeat + 1):
         for index, task_path in enumerate(task_paths):
             # Alternate which condition goes first so ordering effects cancel.
@@ -553,8 +600,12 @@ def main() -> int:
                     args.model,
                     args.reasoning,
                     args.timeout,
+                    scale_files,
+                    tool_budget,
                 )
                 result["repeat"] = repeat
+                result["scale_files"] = scale_files
+                result["tool_budget"] = tool_budget
                 results.append(result)
                 (run_dir / "metrics.json").write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
 

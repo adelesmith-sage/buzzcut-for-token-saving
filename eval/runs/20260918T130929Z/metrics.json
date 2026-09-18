@@ -223,5 +223,293 @@
       "reasoning_output_tokens": 93
     },
     "repeat": 1
+  },
+  {
+    "task": "feature_flag",
+    "title": "Add a refund feature flag",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": false,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the repository's feature-flag parser",
+        "passed": false,
+        "missing": [
+          "from flags import is_enabled",
+          "is_enabled(environment, \"FAST_REFUNDS\")"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 0,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 21.56,
+    "usage": {
+      "input_tokens": 45100,
+      "cached_input_tokens": 35456,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 627,
+      "reasoning_output_tokens": 303
+    },
+    "repeat": 1
+  },
+  {
+    "task": "logging",
+    "title": "Log slow requests",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": false,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing slow-request logger",
+        "passed": false,
+        "missing": [
+          "from telemetry import log_if_slow",
+          "log_if_slow("
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 0,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 37.37,
+    "usage": {
+      "input_tokens": 63074,
+      "cached_input_tokens": 52352,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1073,
+      "reasoning_output_tokens": 556
+    },
+    "repeat": 1
+  },
+  {
+    "task": "logging",
+    "title": "Log slow requests",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing slow-request logger",
+        "passed": false,
+        "missing": [
+          "from telemetry import log_if_slow",
+          "log_if_slow("
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 42.26,
+    "usage": {
+      "input_tokens": 101892,
+      "cached_input_tokens": 92032,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1178,
+      "reasoning_output_tokens": 226
+    },
+    "repeat": 1
+  },
+  {
+    "task": "retry",
+    "title": "Add invoice retries",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing retry option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 1,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 39.67,
+    "usage": {
+      "input_tokens": 116818,
+      "cached_input_tokens": 105856,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1175,
+      "reasoning_output_tokens": 163
+    },
+    "repeat": 1
+  },
+  {
+    "task": "retry",
+    "title": "Add invoice retries",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing retry option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 1,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 46.07,
+    "usage": {
+      "input_tokens": 94583,
+      "cached_input_tokens": 82560,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1353,
+      "reasoning_output_tokens": 623
+    },
+    "repeat": 1
+  },
+  {
+    "task": "timeout",
+    "title": "Apply request timeout",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing timeout option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 1,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 36.61,
+    "usage": {
+      "input_tokens": 91929,
+      "cached_input_tokens": 85632,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1253,
+      "reasoning_output_tokens": 538
+    },
+    "repeat": 1
+  },
+  {
+    "task": "timeout",
+    "title": "Apply request timeout",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing timeout option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 3,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 44.27,
+    "usage": {
+      "input_tokens": 136673,
+      "cached_input_tokens": 129536,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1375,
+      "reasoning_output_tokens": 176
+    },
+    "repeat": 1
+  },
+  {
+    "task": "validation",
+    "title": "Validate user email",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing email validator",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 5,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 52.05,
+    "usage": {
+      "input_tokens": 118919,
+      "cached_input_tokens": 107392,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1678,
+      "reasoning_output_tokens": 404
+    },
+    "repeat": 1
+  },
+  {
+    "task": "validation",
+    "title": "Validate user email",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing email validator",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 60.87,
+    "usage": {
+      "input_tokens": 127796,
+      "cached_input_tokens": 106880,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2145,
+      "reasoning_output_tokens": 1176
+    },
+    "repeat": 1
   }
 ]

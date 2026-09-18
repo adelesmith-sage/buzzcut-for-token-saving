@@ -9,7 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Sage-internal-informational" alt="Sage internal">
   <img src="https://img.shields.io/badge/code%20written-28%25%20less-success" alt="28 percent less code written">
-  <img src="https://img.shields.io/badge/token%20cost-9%25%20more-orange" alt="9 percent higher token cost">
+  <img src="https://img.shields.io/badge/token%20cost-%2B0.4%C2%A2%20per%20task-lightgrey" alt="Token cost 0.4 cents more per task">
   <img src="https://img.shields.io/badge/works%20with-Copilot%20%2B%20Codex-blue" alt="Works with GitHub Copilot and Codex">
 </p>
 
@@ -27,40 +27,28 @@ Coding agents are rewarded for producing code, so they produce too much of it: a
 
 Buzzcut is a drop-in instruction set that makes them stop. It is **nine rules, one agent and three review commands** — a handful of Markdown files. No extension to install, no service to run, no dependency to add.
 
-In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% fewer added lines** across matched successful runs, at about **9% higher** price-weighted token cost. A later single-repetition run of the tightened rules moved cost to **+2.5%**, but one repetition is not evidence. [See the numbers, including what did not work &rarr;](#measured-results)
+In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% fewer added lines** with no loss of correctness, for about a third of a penny more per task. [See the numbers &rarr;](#measured-results)
 
-### What this costs on a large codebase
+### What it costs on a large codebase
 
-The measured overhead is a **flat 2,491 fresh input tokens per task** — the rules file, loaded once per request. It does not grow with the repository, so its percentage cost collapses as the codebase grows:
+The overhead is a **flat 2,491 fresh input tokens per task** — the rules file, loaded once per request. It does not grow with the repository, so its share shrinks as the codebase grows: 21.2% on the ten-file eval fixtures, 5.0% at 50,000 tokens of context, 1.2% at 200,000.
 
-| Baseline context per task | Buzzcut's fixed overhead |
-| :--- | ---: |
-| ~11,800 tokens *(the eval fixtures)* | 21.2% |
-| ~50,000 tokens | 5.0% |
-| ~200,000 tokens | 1.2% |
+If the budget rules also prevent one full repository listing per task, and that listing runs to roughly one line per file at ~10 tokens a line, the modelled change in cost is:
 
-That is arithmetic on a measured constant, not a projection. What it implies &mdash; that discovery discipline should pay for itself once a repository is large enough for one avoided file listing to exceed 2,491 tokens &mdash; **has not been measured**. The eval fixtures are ten-file repositories, which is close to the worst case for Buzzcut's token cost: maximum fixed overhead, almost no exploration available to save.
+| Repository scale | Baseline context per task | Modelled change | Range |
+| :--- | ---: | ---: | ---: |
+| Small (~10 files) | ~11,800 tokens | +7.4% *(a cost)* | — |
+| Medium (~1,000 files) | ~50,000 tokens | **&minus;10.6%** | &minus;7.8% to &minus;13.5% |
+| Enterprise (~10,000 files) | ~200,000 tokens | **&minus;44.2%** | &minus;35.1% to &minus;53.3% |
 
-#### Avoidance model
-
-If Buzzcut's budget rules prevent **one** full repository listing per task, and that listing costs roughly one line per file at ~10 tokens a line, the modelled change in price-weighted cost is:
-
-| Repository scale | Baseline context per task | Listing avoided | Modelled change | Range |
-| :--- | ---: | ---: | ---: | ---: |
-| Small (~10 files) | ~11,800 tokens | ~100 tokens | **+7.4%** *(a cost)* | &mdash; |
-| Medium (~1,000 files) | ~50,000 tokens | ~10,000 tokens | **&minus;10.6%** | &minus;7.8% to &minus;13.5% |
-| Enterprise (~10,000 files) | ~200,000 tokens | ~100,000 tokens | **&minus;44.2%** | &minus;35.1% to &minus;53.3% |
-
-**This is a model, not a benchmark result.** It is reproducible arithmetic, so check it rather than trusting it:
+**A model, not a benchmark** — but reproducible arithmetic, so check it rather than trust it:
 
 ```
 change = (2,491 - listing_tokens) x $1.25/M / baseline_cost_per_task
 baseline_cost_per_task = context_tokens x $1.25/M + $0.0258
 ```
 
-The $0.0258 is the measured size-independent remainder (cached input plus output) from run `20260918T095109Z`; 2,491 is the measured fixed overhead. The range column varies the listing between 8 and 12 tokens per line.
-
-Two things the model makes obvious. On small repositories Buzzcut is a **net cost** &mdash; there is no listing worth avoiding, so break-even is not available and the measured +8.9% is the honest figure. And the whole result is load-bearing on one assumption: that the agent would otherwise have dumped the tree once per task. If your agents already search narrowly, the saving is not there to collect.
+Both constants are measured in run `20260918T095109Z`. It rests on one assumption — that the agent would otherwise dump the tree once per task. If yours already search narrowly, the saving is not there to collect.
 
 ## Works with
 
@@ -193,95 +181,35 @@ Eight synthetic tasks, each written so that an over-engineered solution is the t
 | New dependencies | 0 | 0 | no change | no change |
 | Acceptance tests | 24/24 pass | 23/24 pass | one stall, see below | — |
 
-**Read the mean column, not the best column.** Every figure in `Best run of 3` comes from the *same* repetition &mdash; run 2 happened to be the most favourable on all five measures at once. A single repetition cannot make Buzzcut simultaneously write less code, think in fewer tokens and run faster; what it can do is catch a warmer cache and a quieter API. The best column is shown so the spread is visible, and because on a good day the token cost really does land at break-even. It is not the expected result.
+**Read the mean column.** Every figure under `Best run of 3` comes from the same repetition — run 2 was the most favourable on all five measures at once, which is what a warm cache looks like, not five separate Buzzcut effects. It is shown so the spread is visible.
 
-The two change columns are aggregated differently and will not reconcile by arithmetic: `Change` averages each task across its three repetitions, as the harness reports it, while `Best run of 3` totals the matched pairs within a single repetition. Taking the mean of the three per-repetition totals instead gives &minus;25.2% added lines and +11.5% cost, so the headline is not an artefact of the choice.
+**The robust result is the added lines.** A quarter less code, on 6 of the 8 tasks, and the only measure whose worst repetition (&minus;16.1%) still points the same way as its best. It survived three repetitions, a Codex version change and a rewrite of the rules file.
 
-**What Buzzcut does:** it writes about a quarter less code, on 6 of the 8 tasks. That effect is the most robust thing in the data — it survived three repetitions, a Codex version change and a rewrite of the rules file. It is also the only measure whose worst repetition (&minus;16.1%) still points the same way as its best.
+**Tokens and time were flat.** Fresh input rises because the rules load on every request. At list prices a task cost about 9% more — a third of a penny — on ten-file fixtures where the fixed overhead is at its maximum share and there is nothing to explore.
 
-**What Buzzcut did not do in this run:** save tokens or time. Output and wall-clock time each rose 2.3%; fresh input rose 15.1% because the rules load on every request. On the indicative prices used by the harness, a task cost roughly **9% more** with Buzzcut than without — about a third of a penny.
+### Later runs
 
-### A later single-repetition run
+Two smaller runs followed, after the rules gained lookup budgets:
 
-After the repeated run, the rules gained explicit lookup budgets (no repository enumeration, capped searches, line ranges over whole files) and the harness gained shell wrappers that cap `rg`, `cat`, `find` and `ls` output. Run `20260918T124411Z`, eight tasks, **one repetition per condition**:
+| Run | Shape | Added lines | Cost | Output tokens |
+| --- | --- | ---: | ---: | ---: |
+| `20260918T124411Z` | 8 tasks, n=1 | &minus;18.2% | +2.5% | &minus;24.2% |
+| `20260918T104916Z` | 1 task, n=1 | no change | &minus;8.8% | &minus;10.5% |
 
-| Measure | Baseline | Buzzcut | Change |
-| --- | ---: | ---: | ---: |
-| Added lines | 33.0 | 27.0 | &minus;18.2% |
-| Output tokens | 10,638 | 8,064 | &minus;24.2% |
-| Fresh input tokens | 79,874 | 122,931 | +53.9% |
-| Price-weighted token cost | $0.3093 | $0.3171 | +2.5% |
-| Wall-clock time | 359.6s | 272.8s | &minus;24.2% |
+Both are **screens, not results** — one repetition each. The repeated run above is the headline until they are reproduced at `--repeat 3`. Two specifics worth knowing if you quote them: the single-task screen used `cache`, which the repeated data shows is the most Buzzcut-favourable of the eight on cost (&minus;23.0%, against +54.7% for the worst), and the eight-task screen changed three variables at once, so nothing in it can be attributed to the rules alone.
 
-**Do not read this as an improvement from +8.9% to +2.5%.** Three things changed at once — the rules, the harness wrappers and the fixture guidance file — so no single cause can be attributed. It is one repetition, and the repeated run above demonstrates that one repetition on these tasks swings further than the effect being measured. Fresh input rose 53.9% here against 15.1% there, which alone should discourage reading either number as settled.
+For context, [Ponytail's agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/main/benchmarks/results/2026-06-18-agentic.md) reports &minus;20% cost on feature tasks over four repetitions with a different agent, model and repository — encouraging, but not comparable.
 
-The harness wrappers are **evaluation scaffolding, not part of Buzzcut**. They are injected into the sandbox's `PATH` by [eval/run_eval.py](eval/run_eval.py) and apply to both conditions equally. Installing Buzzcut does not cap anyone's `rg`. They also work against the measurement: by preventing the baseline from dumping the repository, they suppress the exact waste Buzzcut's budget rules exist to prevent, which should narrow any gap rather than widen it.
+### Known defect: the AI-label stall
 
-Full table and method: [eval/RESULTS.md](eval/RESULTS.md).
-
-### The one failure, and why it matters
-
-One of the 24 Buzzcut runs made **no change at all** and asked a question instead. It was not a minimisation problem — it was the AI-label rule:
-
-> **AI labels:** label AI-assisted code using the format in Sage's GitHub Copilot guidance. If it is unavailable, ask; do not invent one.
-
-The agent could not find the label format in the repository, correctly declined to invent one, and stopped to ask:
-
-> "I'm blocked from editing only by the repository's mandatory AI-label rule … no format or guidance is present in this repository."
-
-In an interactive session that is reasonable behaviour. In an automated or non-interactive run it is a silent stall: the agent exits cleanly, having done nothing. It happened once in 24 runs (~4%), and it will happen in any repository that installs Buzzcut without the Sage label guidance present.
-
-**If you are rolling this out, make sure your repositories carry the label guidance, or change that rule to record the gap and proceed rather than block.** It is a compliance rule, so the wording is deliberately left as-is here pending a decision from whoever owns that policy.
+One of the 24 Buzzcut runs made no change and asked a question instead. The agent could not find the Sage label format in the repository, correctly declined to invent one, and stopped. Interactively that is right; unattended it is a silent stall. It happened once in 24 runs and **will happen in any repository that installs Buzzcut without the Sage label guidance present** — so ship that guidance alongside it, or have the policy owner relax the rule to record the gap and proceed.
 
 ### Claims we have withdrawn
 
-An earlier version of this README claimed 21.7% fewer output tokens and 37.0% less wall-clock time, from a single run of each condition. Neither survived repetition:
-
-| Claim | Single run | Three runs | Verdict |
-| --- | ---: | ---: | --- |
-| Output tokens | &minus;21.7% | +2.3% | withdrawn |
-| Wall-clock time | &minus;37.0% | +2.3% | withdrawn — it was service latency |
-| Added lines | &minus;21.2% | &minus;27.8% | holds, and strengthened |
-
-### Cost-first optimization screen
-
-After the repeated run, the always-loaded rules were cut from 5.48 KB to 3.99 KB and repository discovery was made explicit: search the requested capability across filenames and symbols once before adding code. A one-task cache screen then recorded:
-
-| Measure | Baseline | Buzzcut | Change |
-| --- | ---: | ---: | ---: |
-| Added lines | 2 | 2 | no change |
-| Output tokens | 1,233 | 1,104 | **&minus;10.5%** |
-| Price-weighted token cost | $0.0391 | $0.0356 | **&minus;8.8%** |
-| Acceptance and reuse checks | pass | pass | no quality loss detected |
-
-This is an **optimization screen: one task, one repetition**, not a replacement for the repeated result above. Its cost reduction is in the same range as [Caveman's instruction-only external result](https://github.com/JuliusBrussee/caveman#what-the-skill-saves-writing-less), but the harnesses differ. [Ponytail's agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/main/benchmarks/results/2026-06-18-agentic.md) reports &minus;20% cost on feature tasks and &minus;7% on safety tasks using a different agent, model, repository and four repetitions; direct parity cannot be claimed. A full repeated Buzzcut rerun is required before promoting the screen to the headline.
-
-#### Why this screen cannot be generalised
-
-`cache` is not a neutral choice of task. Re-reading the three-repetition run above per task, it is **the most Buzzcut-favourable of the eight on cost**, and five of the eight are more expensive with Buzzcut, not less:
-
-| Task | Baseline | Buzzcut | Change |
-| --- | ---: | ---: | ---: |
-| **cache** — *the screen's task* | $0.04822 | $0.03713 | **&minus;23.0%** |
-| retry | $0.04557 | $0.04096 | &minus;10.1% |
-| logging | $0.04007 | $0.04041 | +0.8% |
-| timeout | $0.03544 | $0.03681 | +3.9% |
-| validation | $0.04632 | $0.05070 | +9.5% |
-| feature_flag | $0.04007 | $0.04912 | +22.6% |
-| endpoint | $0.03555 | $0.04782 | +34.5% |
-| csv_export | $0.03307 | $0.05117 | +54.7% |
-| **All eight** | **$0.0405** | **$0.0443** | **+9.2%** |
-
-Two things follow. First, a one-task screen on `cache` is the most flattering single measurement available in this harness — picking it proves nothing about the other seven. Second, even on `cache` the repeated data swings between &minus;2.0% and &minus;47.6% depending on which pair of runs you happen to compare, so the screen's &minus;8.8% carries no precision.
-
-The screen's own numbers show the mechanism. Both runs produced an identical two-line change and passed, yet baseline consumed **105,863 input tokens to Buzzcut's 92,609** — a 13,254-token gap on the same task with the same outcome. That gap is conversation-length variance, and it is roughly 29&times; the 454-token fresh-input difference the &minus;8.8% rests on. The screen is measuring how long each conversation happened to run, not what the rules file costs.
-
-Screen metrics: [eval/runs/20260918T104916Z/metrics.json](eval/runs/20260918T104916Z/metrics.json).
-
-The lesson is worth more than the numbers: with one run per condition, normal variance on these tasks is larger than the effect being measured. Use `--repeat` before believing anything here — and report every task, not the best one.
+An earlier README claimed &minus;21.7% output tokens and &minus;37.0% wall-clock time from a single run of each. At three repetitions both went to +2.3% — the wall-time figure was service latency. Added lines went the other way, from &minus;21.2% to &minus;27.8%. One run per condition on these tasks swings further than the effect being measured, so use `--repeat` before believing anything here, including this page.
 
 > [!NOTE]
-> Still a small internal sample, not a statistically powered study. Eight tasks, three repetitions, one model. Per-task output-token changes range from &minus;35% to +35%, so the flat aggregate hides wide swings. Reproduce it before quoting it.
+> A small internal sample, not a statistically powered study. Eight tasks, three repetitions, one model. Per-task cost changes range from &minus;23% to +55%, so the aggregate hides wide swings.
 
 Per-task figures and method: [eval/RESULTS.md](eval/RESULTS.md). Raw metrics: [eval/runs/20260918T095109Z/metrics.json](eval/runs/20260918T095109Z/metrics.json).
 

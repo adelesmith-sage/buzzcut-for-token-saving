@@ -1,0 +1,38 @@
+[
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": false,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": false,
+        "missing": [
+          "from file_cache import read_text",
+          "read_text(path)"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 0,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 45.8,
+    "usage": {
+      "input_tokens": 64773,
+      "cached_input_tokens": 50048,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1394,
+      "reasoning_output_tokens": 886
+    },
+    "repeat": 1,
+    "scale_files": 5000,
+    "tool_budget": false
+  }
+]
