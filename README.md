@@ -27,7 +27,19 @@ Coding agents are rewarded for producing code, so they produce too much of it: a
 
 Buzzcut is a drop-in instruction set that makes them stop. It is **nine rules, one agent and three review commands** — a handful of Markdown files. No extension to install, no service to run, no dependency to add.
 
-In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% fewer added lines** across matched successful runs. It did **not** reduce tokens or wall-clock time in that run — it cost about **9% more** per task. [See the numbers, including what did not work &rarr;](#measured-results)
+In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% fewer added lines** across matched successful runs, at about **9% higher** price-weighted token cost. A later single-repetition run of the tightened rules moved cost to **+2.5%**, but one repetition is not evidence. [See the numbers, including what did not work &rarr;](#measured-results)
+
+### What this costs on a large codebase
+
+The measured overhead is a **flat 2,491 fresh input tokens per task** — the rules file, loaded once per request. It does not grow with the repository, so its percentage cost collapses as the codebase grows:
+
+| Baseline context per task | Buzzcut's fixed overhead |
+| :--- | ---: |
+| ~11,800 tokens *(the eval fixtures)* | 21.2% |
+| ~50,000 tokens | 5.0% |
+| ~200,000 tokens | 1.2% |
+
+That is arithmetic on a measured constant, not a projection. What it implies — that discovery discipline should pay for itself once a repository is large enough for one avoided file listing to exceed 2,491 tokens — **has not been measured**. The eval fixtures are ten-file repositories, which is close to the worst case for Buzzcut's token cost: maximum fixed overhead, almost no exploration available to save. Treat the large-repository case as untested.
 
 ## Works with
 
@@ -167,6 +179,24 @@ The two change columns are aggregated differently and will not reconcile by arit
 **What Buzzcut does:** it writes about a quarter less code, on 6 of the 8 tasks. That effect is the most robust thing in the data — it survived three repetitions, a Codex version change and a rewrite of the rules file. It is also the only measure whose worst repetition (&minus;16.1%) still points the same way as its best.
 
 **What Buzzcut did not do in this run:** save tokens or time. Output and wall-clock time each rose 2.3%; fresh input rose 15.1% because the rules load on every request. On the indicative prices used by the harness, a task cost roughly **9% more** with Buzzcut than without — about a third of a penny.
+
+### A later single-repetition run
+
+After the repeated run, the rules gained explicit lookup budgets (no repository enumeration, capped searches, line ranges over whole files) and the harness gained shell wrappers that cap `rg`, `cat`, `find` and `ls` output. Run `20260918T124411Z`, eight tasks, **one repetition per condition**:
+
+| Measure | Baseline | Buzzcut | Change |
+| --- | ---: | ---: | ---: |
+| Added lines | 33.0 | 27.0 | &minus;18.2% |
+| Output tokens | 10,638 | 8,064 | &minus;24.2% |
+| Fresh input tokens | 79,874 | 122,931 | +53.9% |
+| Price-weighted token cost | $0.3093 | $0.3171 | +2.5% |
+| Wall-clock time | 359.6s | 272.8s | &minus;24.2% |
+
+**Do not read this as an improvement from +8.9% to +2.5%.** Three things changed at once — the rules, the harness wrappers and the fixture guidance file — so no single cause can be attributed. It is one repetition, and the repeated run above demonstrates that one repetition on these tasks swings further than the effect being measured. Fresh input rose 53.9% here against 15.1% there, which alone should discourage reading either number as settled.
+
+The harness wrappers are **evaluation scaffolding, not part of Buzzcut**. They are injected into the sandbox's `PATH` by [eval/run_eval.py](eval/run_eval.py) and apply to both conditions equally. Installing Buzzcut does not cap anyone's `rg`. They also work against the measurement: by preventing the baseline from dumping the repository, they suppress the exact waste Buzzcut's budget rules exist to prevent, which should narrow any gap rather than widen it.
+
+Full table and method: [eval/RESULTS.md](eval/RESULTS.md).
 
 ### The one failure, and why it matters
 

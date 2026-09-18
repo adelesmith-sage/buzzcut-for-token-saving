@@ -53,7 +53,13 @@ def codex_version() -> str:
     return run(["codex", "--version"], ROOT).stdout.strip() or "unknown"
 
 
-def run(command: list[str], cwd: Path, *, timeout: int = 60) -> subprocess.CompletedProcess[str]:
+def run(
+    command: list[str],
+    cwd: Path,
+    *,
+    timeout: int = 60,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=cwd,
@@ -61,6 +67,7 @@ def run(command: list[str], cwd: Path, *, timeout: int = 60) -> subprocess.Compl
         capture_output=True,
         timeout=timeout,
         check=False,
+        env=env,
     )
 
 
@@ -71,11 +78,7 @@ def materialise(task: dict[str, Any], destination: Path, with_buzzcut: bool) -> 
         target.write_text(content, encoding="utf-8")
 
     (destination / ".gitignore").write_text("__pycache__/\n*.py[cod]\n", encoding="utf-8")
-    (destination / "SAGE_AI_GUIDANCE.md").write_text(
-        "# Synthetic evaluation fixture\n\n"
-        "These disposable fixtures are exempt from in-source AI labels.\n",
-        encoding="utf-8",
-    )
+    shutil.copy2(ROOT / "SAGE_AI_GUIDANCE.md", destination / "SAGE_AI_GUIDANCE.md")
     if with_buzzcut:
         shutil.copy2(ROOT / "AGENTS.md", destination / "AGENTS.md")
 
@@ -91,6 +94,81 @@ def materialise(task: dict[str, Any], destination: Path, with_buzzcut: bool) -> 
         if completed.returncode:
             raise RuntimeError(completed.stderr.strip() or "Failed to initialise fixture")
     return run(["git", "rev-parse", "HEAD"], destination).stdout.strip()
+
+
+def tool_budget_environment(wrapper_dir: Path) -> dict[str, str]:
+    """Put deterministic output-budget wrappers before the agent's shell tools."""
+    wrapper_dir.mkdir(parents=True, exist_ok=True)
+    real_tools = {name: shutil.which(name) for name in ("rg", "cat", "find", "ls")}
+    if not all(real_tools.values()):
+        missing = ", ".join(name for name, path in real_tools.items() if not path)
+        raise RuntimeError(f"required shell tool(s) not found: {missing}")
+
+    wrappers = {
+        "rg": """#!/usr/bin/env python3
+import os, subprocess, sys
+args = sys.argv[1:]
+files = "--files" in args
+capped = any(arg in ("-m", "--max-count") or arg.startswith(("-m", "--max-count=")) for arg in args)
+if not files and not capped:
+    args.append("--max-count=20")
+result = subprocess.run([os.environ["BUZZCUT_REAL_RG"], *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+limit = 50 if files else 20
+lines = result.stdout.splitlines(keepends=True)
+sys.stdout.buffer.writelines(lines[:limit])
+sys.stderr.buffer.write(result.stderr)
+if len(lines) > limit:
+    sys.stderr.write(f"buzzcut: rg output capped at {limit} lines; narrow the path or pattern.\\n")
+raise SystemExit(result.returncode)
+""",
+        "cat": """#!/usr/bin/env python3
+import os, sys
+args = sys.argv[1:]
+if not args or any(arg == "-" or arg.startswith("-") for arg in args):
+    sys.stderr.write("buzzcut: use sed, head, or a focused rg instead of uncapped cat.\\n")
+    raise SystemExit(2)
+status = 0
+for raw_path in args:
+    try:
+        with open(raw_path, "rb") as source:
+            lines = [source.readline() for _ in range(100)]
+            lines = [line for line in lines if line]
+            more = bool(source.readline())
+        sys.stdout.buffer.writelines(lines)
+        if more:
+            sys.stderr.write(f"buzzcut: cat capped {raw_path} at 100 lines; use sed -n for a range.\\n")
+    except OSError as error:
+        sys.stderr.write(f"cat: {raw_path}: {error.strerror}\\n")
+        status = 1
+raise SystemExit(status)
+""",
+        "find": """#!/usr/bin/env python3
+import os, sys
+args = sys.argv[1:]
+if any(arg in (".", "./") for arg in args):
+    sys.stderr.write("buzzcut: find . is blocked; search a specific directory.\\n")
+    raise SystemExit(2)
+os.execv(os.environ["BUZZCUT_REAL_FIND"], [os.environ["BUZZCUT_REAL_FIND"], *args])
+""",
+        "ls": """#!/usr/bin/env python3
+import os, sys
+args = sys.argv[1:]
+if any(arg == "--recursive" or (arg.startswith("-") and "R" in arg) for arg in args):
+    sys.stderr.write("buzzcut: recursive ls is blocked; inspect a specific directory.\\n")
+    raise SystemExit(2)
+os.execv(os.environ["BUZZCUT_REAL_LS"], [os.environ["BUZZCUT_REAL_LS"], *args])
+""",
+    }
+    for name, content in wrappers.items():
+        path = wrapper_dir / name
+        path.write_text(content, encoding="utf-8")
+        path.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{wrapper_dir}{os.pathsep}{env['PATH']}"
+    for name, path in real_tools.items():
+        env[f"BUZZCUT_REAL_{name.upper()}"] = str(path)
+    return env
 
 
 def dependency_snapshot(root: Path) -> set[str]:
@@ -211,15 +289,14 @@ def run_condition(
     timeout: int,
 ) -> dict[str, Any]:
     task = json.loads(task_path.read_text(encoding="utf-8"))
-    with tempfile.TemporaryDirectory(prefix=f"buzzcut-{task_path.stem}-{condition}-") as temp:
+    with (
+        tempfile.TemporaryDirectory(prefix=f"buzzcut-{task_path.stem}-{condition}-") as temp,
+        tempfile.TemporaryDirectory(prefix="buzzcut-tool-budget-") as wrapper_temp,
+    ):
         worktree = Path(temp)
         base = materialise(task, worktree, condition == "buzzcut")
         dependencies_before = dependency_snapshot(worktree)
-        prompt = (
-            task["prompt"]
-            + "\n\nEvaluation context: SAGE_AI_GUIDANCE.md confirms that these synthetic fixtures "
-            "are exempt from in-source AI labels."
-        )
+        prompt = task["prompt"]
         command = [
             "codex",
             "exec",
@@ -238,7 +315,12 @@ def run_condition(
         ]
         started = time.monotonic()
         try:
-            completed = run(command, worktree, timeout=timeout)
+            completed = run(
+                command,
+                worktree,
+                timeout=timeout,
+                env=tool_budget_environment(Path(wrapper_temp)),
+            )
             timed_out = False
         except subprocess.TimeoutExpired as error:
             completed = subprocess.CompletedProcess(
@@ -314,10 +396,10 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         "",
         f"> This is a small internal sample, not a statistically powered study. {sample}",
         "",
-        f"Run: `{run_id}`  ",
-        f"Codex CLI: `{cli_version}`  ",
-        f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning  ",
-        f"Repetitions: {repeats} per condition  ",
+        f"Run: `{run_id}`",
+        f"Codex CLI: `{cli_version}`",
+        f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning",
+        f"Repetitions: {repeats} per condition",
         "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`; aggregate changes use only matched pairs where both agents completed and passed acceptance tests.",
         "",
         "Price-weighted token cost is the primary efficiency measure. Token classes are also reported separately: `Output` is what the agent writes; `Fresh input` is uncached prompt content and can rise because Buzzcut's rules load on every request; `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",

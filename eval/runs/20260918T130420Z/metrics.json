@@ -1,0 +1,138 @@
+[
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": false,
+        "missing": [
+          "from file_cache import read_text",
+          "read_text(path)"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 7,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 52.49,
+    "usage": {
+      "input_tokens": 110756,
+      "cached_input_tokens": 98688,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1807,
+      "reasoning_output_tokens": 870
+    },
+    "repeat": 1
+  },
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": false,
+        "missing": [
+          "from file_cache import read_text",
+          "read_text(path)"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 7,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 64.68,
+    "usage": {
+      "input_tokens": 152026,
+      "cached_input_tokens": 125184,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2074,
+      "reasoning_output_tokens": 732
+    },
+    "repeat": 1
+  },
+  {
+    "task": "csv_export",
+    "title": "Add CSV export",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing CSV writer",
+        "passed": false,
+        "missing": [
+          "from csv_tools import write_rows",
+          "write_rows(users,"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 10,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 39.15,
+    "usage": {
+      "input_tokens": 102823,
+      "cached_input_tokens": 96768,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1062,
+      "reasoning_output_tokens": 114
+    },
+    "repeat": 1
+  },
+  {
+    "task": "csv_export",
+    "title": "Add CSV export",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing CSV writer",
+        "passed": false,
+        "missing": [
+          "from csv_tools import write_rows",
+          "write_rows(users,"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 10,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 33.3,
+    "usage": {
+      "input_tokens": 92126,
+      "cached_input_tokens": 85760,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 957,
+      "reasoning_output_tokens": 162
+    },
+    "repeat": 1
+  }
+]

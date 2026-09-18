@@ -1,0 +1,98 @@
+[
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 48.39,
+    "usage": {
+      "input_tokens": 93094,
+      "cached_input_tokens": 76032,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1755,
+      "reasoning_output_tokens": 1030
+    },
+    "repeat": 1
+  },
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 66.38,
+    "usage": {
+      "input_tokens": 164554,
+      "cached_input_tokens": 141312,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2027,
+      "reasoning_output_tokens": 581
+    },
+    "repeat": 1
+  },
+  {
+    "task": "csv_export",
+    "title": "Add CSV export",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing CSV writer",
+        "passed": false,
+        "missing": [
+          "from csv_tools import write_rows",
+          "write_rows(users,"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 10,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 39.09,
+    "usage": {
+      "input_tokens": 101891,
+      "cached_input_tokens": 96000,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1141,
+      "reasoning_output_tokens": 186
+    },
+    "repeat": 1
+  }
+]

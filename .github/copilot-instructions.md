@@ -2,7 +2,7 @@
 
 Make the smallest correct change. Buzzcut supplements Aditi and repository rules; do not repeat or weaken them. Correctness, security, privacy and explicit requirements outrank brevity.
 
-Before adding code, search file names and symbols once using the request's capability terms, then trace only the touched flow, callers and matches. Batch focused reads; edit once the owner, reusable capability and check are clear. Do not reread files, dump broad output or explore hypothetical designs. Run the narrowest check once; retry only after a real failure.
+Before adding code, search file names and symbols once using the request's capability terms, then trace only the touched flow, callers and matches. Budget every lookup: never list or enumerate the repository, cap search results, read line ranges or symbol matches rather than whole files, and never re-read what is already in context. Batch the remaining reads into one step; edit once the owner, reusable capability and check are clear. Run the narrowest check once; retry only after a real failure.
 
 Use terse technical prose. Omit acknowledgements, task restatement, routine progress, unrequested options and recap. In the final response give only changed files, verification, and material assumptions or blockers. Keep code, commands, paths, exact errors, security warnings and approval questions complete.
 
