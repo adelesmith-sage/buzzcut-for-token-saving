@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -20,6 +21,36 @@ TASKS_DIR = ROOT / "eval" / "tasks"
 RESULTS_PATH = ROOT / "eval" / "RESULTS.md"
 DEFAULT_MODEL = "gpt-5.6-sol"
 DEFAULT_REASONING = "high"
+
+# Indicative gpt-5-class list rates in USD per million tokens, used only to weight
+# the three token classes against each other. Not a billing statement.
+PRICE_PER_MILLION = {"fresh_input": 1.25, "cached_input": 0.125, "output": 10.0}
+
+
+def token_split(usage: dict[str, int]) -> dict[str, int]:
+    """Separate the token classes, which differ in both price and meaning."""
+    cached = usage.get("cached_input_tokens", 0)
+    return {
+        "fresh_input": usage.get("input_tokens", 0) - cached,
+        "cached_input": cached,
+        "output": usage.get("output_tokens", 0),
+    }
+
+
+def weighted_cost(usage: dict[str, int]) -> float:
+    split = token_split(usage)
+    return sum(split[key] * PRICE_PER_MILLION[key] for key in split) / 1_000_000
+
+
+def codex_version() -> str:
+    if not shutil.which("codex"):
+        # Fall back to the version already published, so a rewrite keeps its provenance.
+        if RESULTS_PATH.exists():
+            recorded = re.search(r"^Codex CLI: `(.+?)`", RESULTS_PATH.read_text(encoding="utf-8"), re.MULTILINE)
+            if recorded:
+                return recorded.group(1)
+        return "unknown"
+    return run(["codex", "--version"], ROOT).stdout.strip() or "unknown"
 
 
 def run(command: list[str], cwd: Path, *, timeout: int = 60) -> subprocess.CompletedProcess[str]:
@@ -234,6 +265,8 @@ def change_label(baseline: float, buzzcut: float) -> str:
 
 
 def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) -> None:
+    task_order = {task: index for index, task in enumerate(dict.fromkeys(row["task"] for row in results))}
+    results = sorted(results, key=lambda row: (task_order[row["task"]], row["condition"] != "baseline"))
     lines = [
         "# Buzzcut evaluation results",
         "",
@@ -244,19 +277,20 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning  ",
         "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`.",
         "",
-        "| Task | Condition | Added lines | New files | New deps | Tokens | Wall time | Tests |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        "Token classes are reported separately because they behave differently. `Output` is what the agent writes, and is the figure Buzzcut is designed to move. `Fresh input` is uncached prompt content, which Buzzcut *increases* because its rules are loaded on every request. `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",
+        "",
+        "| Task | Condition | Added lines | New files | New deps | Output | Fresh input | Wall time | Tests |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for result in results:
-        usage = result["usage"]
-        tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+        split = token_split(result["usage"])
         status = "pass" if result["tests_passed"] else "fail"
         if result["exit_code"]:
             status = f"{status}; agent exit {result['exit_code']}"
         lines.append(
             f"| {result['title']} | {result['condition']} | {result['added_lines']} | "
-            f"{len(result['new_files'])} | {len(result['new_dependencies'])} | {tokens} | "
-            f"{result['wall_seconds']:.2f}s | {status} |"
+            f"{len(result['new_files'])} | {len(result['new_dependencies'])} | {split['output']} | "
+            f"{split['fresh_input']} | {result['wall_seconds']:.2f}s | {status} |"
         )
 
     grouped = {condition: [r for r in results if r["condition"] == condition] for condition in ("baseline", "buzzcut")}
@@ -266,7 +300,10 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
             "added_lines": sum(row["added_lines"] for row in rows),
             "new_files": sum(len(row["new_files"]) for row in rows),
             "new_dependencies": sum(len(row["new_dependencies"]) for row in rows),
-            "tokens": sum(row["usage"].get("input_tokens", 0) + row["usage"].get("output_tokens", 0) for row in rows),
+            "output": sum(token_split(row["usage"])["output"] for row in rows),
+            "fresh_input": sum(token_split(row["usage"])["fresh_input"] for row in rows),
+            "cached_input": sum(token_split(row["usage"])["cached_input"] for row in rows),
+            "cost": sum(weighted_cost(row["usage"]) for row in rows),
             "wall_seconds": sum(row["wall_seconds"] for row in rows),
         }
 
@@ -275,18 +312,22 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         ("added lines", "added_lines"),
         ("new files", "new_files"),
         ("new dependencies", "new_dependencies"),
-        ("tokens", "tokens"),
+        ("output tokens", "output"),
+        ("fresh input tokens", "fresh_input"),
+        ("cached input tokens", "cached_input"),
+        ("price-weighted token cost", "cost"),
         ("wall-clock time", "wall_seconds"),
     ):
         base = totals["baseline"][key]
         buzz = totals["buzzcut"][key]
-        lines.append(f"- {label}: {base:g} → {buzz:g} ({change_label(base, buzz)})")
+        formatted = f"{base:.4f} → {buzz:.4f} USD" if key == "cost" else f"{base:g} → {buzz:g}"
+        lines.append(f"- {label}: {formatted} ({change_label(base, buzz)})")
 
     failures = [f"{row['task']}/{row['condition']}" for row in results if not row["tests_passed"] or row["exit_code"]]
     lines.append(f"- unsuccessful runs: {', '.join(failures) if failures else 'none'}")
     lines.extend([
         "",
-        "`Added lines` counts textual additions in the final Git diff, including tests. `Tokens` is input plus output tokens; cached input remains part of the reported input count. `metrics.json` for this run is tracked under `eval/runs/<run id>/`; the raw JSONL, stderr and patches beside it stay local and are ignored.",
+        "`Added lines` counts textual additions in the final Git diff, including tests. Price-weighted cost uses indicative gpt-5-class list rates (fresh input $1.25, cached input $0.125, output $10.00 per million tokens) to weight the token classes against each other; it is not a billing statement. `metrics.json` for this run is tracked under `eval/runs/<run id>/`; the raw JSONL, stderr and patches beside it stay local and are ignored.",
         "",
     ])
     RESULTS_PATH.write_text("\n".join(lines), encoding="utf-8")
@@ -298,7 +339,17 @@ def main() -> int:
     parser.add_argument("--model", default=os.environ.get("CODEX_MODEL", DEFAULT_MODEL))
     parser.add_argument("--reasoning", default=os.environ.get("CODEX_REASONING", DEFAULT_REASONING))
     parser.add_argument("--timeout", type=int, default=600, help="Seconds allowed per Codex run")
+    parser.add_argument("--rewrite-run", help="Regenerate RESULTS.md from a stored run's metrics.json instead of calling Codex")
     args = parser.parse_args()
+
+    if args.rewrite_run:
+        metrics_path = ROOT / "eval" / "runs" / args.rewrite_run / "metrics.json"
+        if not metrics_path.exists():
+            parser.error(f"no metrics.json for run {args.rewrite_run}")
+        stored = json.loads(metrics_path.read_text(encoding="utf-8"))
+        write_results(stored, args.rewrite_run, codex_version())
+        print(f"Rewrote {RESULTS_PATH.relative_to(ROOT)} from {args.rewrite_run}", flush=True)
+        return 0
 
     if not shutil.which("codex"):
         parser.error("codex CLI is not on PATH")
@@ -331,10 +382,7 @@ def main() -> int:
             results.append(result)
             (run_dir / "metrics.json").write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
 
-    task_order = {path.stem: index for index, path in enumerate(task_paths)}
-    results.sort(key=lambda row: (task_order[row["task"]], row["condition"] != "baseline"))
-    cli_version = run(["codex", "--version"], ROOT).stdout.strip()
-    write_results(results, run_id, cli_version)
+    write_results(results, run_id, codex_version())
     print(f"Wrote {RESULTS_PATH.relative_to(ROOT)}", flush=True)
     return 0
 

@@ -27,7 +27,7 @@ Coding agents are rewarded for producing code, so they produce too much of it: a
 
 Buzzcut is a drop-in instruction set that makes them stop. It is **nine rules, one agent and three review commands** — a handful of Markdown files. No extension to install, no service to run, no dependency to add.
 
-In a paired evaluation over eight tasks, Buzzcut produced **21.2% fewer added lines**, **4.5% fewer tokens** and **37.0% less wall-clock time**, with **all 16 runs passing their acceptance tests**. [See the numbers &rarr;](#measured-results)
+In a paired evaluation over eight tasks, Buzzcut produced **21.2% fewer added lines**, **21.7% fewer output tokens** and **37.0% less wall-clock time**, with **all 16 runs passing their acceptance tests**. [See the numbers &rarr;](#measured-results)
 
 ## Works with
 
@@ -152,16 +152,24 @@ Eight synthetic tasks, each written so that an over-engineered solution is the t
 | Measure | Baseline | Buzzcut | Change |
 | --- | ---: | ---: | ---: |
 | Added lines | 33 | 26 | **&minus;21.2%** |
-| Tokens | 992,255 | 947,577 | **&minus;4.5%** |
+| Output tokens | 12,023 | 9,408 | **&minus;21.7%** |
 | Wall-clock time | 617.1s | 388.9s | **&minus;37.0%** |
 | New files | 0 | 0 | no change |
 | New dependencies | 0 | 0 | no change |
 | Acceptance tests | 8/8 pass | 8/8 pass | no regression |
+| Fresh input tokens | 71,944 | 97,337 | +35.3% |
+| Price-weighted token cost | $0.3237 | $0.3209 | &minus;0.9% |
 
-The headline is not just "less code" — it is less code **at no cost to correctness**, and faster, because the agent spends fewer turns building things it then has to justify.
+The agent writes 21.7% less and deliberates 32.2% less (reasoning tokens fell from 2,202 to 1,492), finishes in a third less time, and still passes every test.
+
+### The honest catch
+
+The last two rows are the ones to read before you quote this anywhere. Buzzcut's rules are loaded into **every** request, which costs roughly 1,600 tokens of fresh input each time. That is why fresh input rises by a third even as output falls by a fifth. Weighted by list price, the two effects very nearly cancel: **token spend is about flat, not lower.**
+
+So the case for Buzzcut is *less code to read, review and maintain*, delivered *faster* — not a smaller model bill. Anyone promising both from an always-on instruction file is either measuring output only or not counting their own prompt.
 
 > [!NOTE]
-> This is a small internal sample, not a statistically powered study. Each task ran once per condition; model nondeterminism and service latency affect the result. Treat it as directional evidence, and reproduce it before quoting it as a benchmark.
+> This is a small internal sample, not a statistically powered study. Each task ran once per condition; model nondeterminism and service latency affect the result. Fresh-input figures in particular swing widely between tasks (&minus;21% to +152%) because prompt-cache behaviour differs run to run. Treat all of this as directional, and reproduce it before quoting it as a benchmark.
 
 Per-task figures, method and caveats: [eval/RESULTS.md](eval/RESULTS.md). Raw metrics for the published run: [eval/runs/20260918T084536Z/metrics.json](eval/runs/20260918T084536Z/metrics.json).
 
@@ -172,6 +180,12 @@ Requires Python 3 (standard library only) and the Codex CLI on your `PATH`.
 ```sh
 python3 eval/run_eval.py              # all eight tasks, both conditions
 python3 eval/run_eval.py --task retry # one task
+```
+
+To re-render [eval/RESULTS.md](eval/RESULTS.md) from a run you already have, without spending anything:
+
+```sh
+python3 eval/run_eval.py --rewrite-run 20260918T084536Z
 ```
 
 See [eval/README.md](eval/README.md) for options and what each measurement means.

@@ -10,11 +10,23 @@ Run all tasks from the repository root:
 python3 eval/run_eval.py
 ```
 
-Use `--task retry` to run one fixture (repeat the flag for several), or `--model` and `--reasoning` to pin another Codex configuration. `--timeout` caps each run, in seconds.
+Use `--task retry` to run one fixture (repeat the flag for several), or `--model` and `--reasoning` to pin another Codex configuration. `--timeout` caps each run, in seconds. `--rewrite-run <run id>` re-renders `RESULTS.md` from a stored `metrics.json` without calling Codex, which is how to pick up a reporting change without paying for the runs again.
 
 Each condition runs in a disposable temporary Git repository, and condition order alternates by task so that ordering effects cancel. The comparable summary is written to [RESULTS.md](RESULTS.md). Per-run output goes to `runs/<run id>/`, where `metrics.json` is tracked as evidence and the raw JSONL, stderr and patches beside it stay local.
 
-The harness measures textual lines added, new files, declared dependencies, Codex input/output tokens, wall-clock time and whether the fixture's acceptance tests pass. These measurements describe this small sample only; they are not a statistically powered benchmark.
+The harness measures textual lines added, new files, declared dependencies, wall-clock time, whether the fixture's acceptance tests pass, and tokens split into three classes.
+
+## Why tokens are split
+
+Reporting one combined token figure is misleading here, because the three classes move in opposite directions and are not priced alike:
+
+- **Output** is what the agent writes. This is what Buzzcut is designed to reduce, and it is the figure comparable to other instruction sets that quote a token saving.
+- **Fresh input** is uncached prompt content. Buzzcut *increases* it, because its rules are loaded on every request — currently about 1,600 tokens each time.
+- **Cached input** is replayed prompt content, billed at roughly a tenth of the fresh rate. In practice it is over 90% of all input tokens, so any combined total is mostly a measure of conversation length rather than of the instructions.
+
+`RESULTS.md` therefore reports all three, plus a price-weighted total that applies indicative gpt-5-class list rates so the classes can be compared on one line. Those rates are set in `PRICE_PER_MILLION` in `run_eval.py`; change them to match your own contract if you need a realistic figure.
+
+These measurements describe this small sample only; they are not a statistically powered benchmark.
 
 ## Adding a task
 

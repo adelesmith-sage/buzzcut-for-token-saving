@@ -16,4 +16,8 @@ First release intended for use across teams.
 
 ### Results
 
-First internal sample, recorded in [eval/RESULTS.md](eval/RESULTS.md): all 16 condition runs passed their acceptance tests, and Buzzcut used 21.2% fewer added lines, 4.5% fewer tokens and 37.0% less wall-clock time. Neither condition added files or dependencies. This is a small sample, not a statistically powered result.
+First internal sample, recorded in [eval/RESULTS.md](eval/RESULTS.md): all 16 condition runs passed their acceptance tests, and Buzzcut used 21.2% fewer added lines, 21.7% fewer output tokens, 32.2% fewer reasoning tokens and 37.0% less wall-clock time. Neither condition added files or dependencies. Fresh input tokens rose 35.3%, because the rules are loaded on every request, leaving price-weighted token spend roughly flat. This is a small sample, not a statistically powered result.
+
+### Fixed
+
+- Token reporting previously combined cached input, fresh input and output into one figure. Cached input is over 90% of that total and is billed at roughly a tenth of the fresh rate, so the combined number tracked conversation length rather than the instructions, and understated the output effect as 4.5%. The three classes are now reported separately, alongside a price-weighted total.
