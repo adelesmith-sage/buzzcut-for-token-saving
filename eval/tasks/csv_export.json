@@ -2,6 +2,7 @@
   "title": "Add CSV export",
   "prompt": "Add export_users_csv(users) to reports.py. It must return CSV text with id and email columns and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "reuses the existing CSV writer", "path": "reports.py", "contains": ["from csv_tools import write_rows", "write_rows(users,"]}],
   "files": {
     "csv_tools.py": "import csv\nimport io\n\n\ndef write_rows(rows, fieldnames):\n    output = io.StringIO(newline=\"\")\n    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction=\"ignore\")\n    writer.writeheader()\n    writer.writerows(rows)\n    return output.getvalue()\n",
     "reports.py": "import json\n\n\ndef export_users_json(users):\n    return json.dumps(users)\n",

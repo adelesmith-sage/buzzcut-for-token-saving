@@ -2,6 +2,7 @@
   "title": "Add suspend endpoint",
   "prompt": "Add a suspend_user endpoint alongside activate_user. It must set the user's status to 'suspended' and return the updated user. Keep the existing endpoint style and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "reuses UserService.set_status", "path": "api.py", "contains": ["service.set_status(user_id, \"suspended\")"]}],
   "files": {
     "users.py": "class UserService:\n    def __init__(self, users):\n        self.users = users\n\n    def set_status(self, user_id, status):\n        user = self.users[user_id]\n        user[\"status\"] = status\n        return user\n",
     "api.py": "def activate_user(user_id, service):\n    return service.set_status(user_id, \"active\")\n",

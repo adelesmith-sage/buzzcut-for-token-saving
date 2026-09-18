@@ -184,6 +184,24 @@ def diff_metrics(root: Path, base: str) -> tuple[int, list[str], str]:
     return added_lines, new_files, patch
 
 
+def evaluate_quality(task: dict[str, Any], root: Path) -> tuple[bool, list[dict[str, Any]]]:
+    results = []
+    for check in task.get("quality_checks", []):
+        path = root / check["path"]
+        content = path.read_text(encoding="utf-8") if path.exists() else ""
+        missing = [value for value in check.get("contains", []) if value not in content]
+        forbidden = [value for value in check.get("excludes", []) if value in content]
+        results.append(
+            {
+                "description": check["description"],
+                "passed": path.exists() and not missing and not forbidden,
+                "missing": missing,
+                "forbidden": forbidden,
+            }
+        )
+    return all(result["passed"] for result in results), results
+
+
 def run_condition(
     task_path: Path,
     condition: str,
@@ -197,6 +215,11 @@ def run_condition(
         worktree = Path(temp)
         base = materialise(task, worktree, condition == "buzzcut")
         dependencies_before = dependency_snapshot(worktree)
+        prompt = (
+            task["prompt"]
+            + "\n\nEvaluation context: SAGE_AI_GUIDANCE.md confirms that these synthetic fixtures "
+            "are exempt from in-source AI labels."
+        )
         command = [
             "codex",
             "exec",
@@ -211,7 +234,7 @@ def run_condition(
             f'model_reasoning_effort="{reasoning}"',
             "--cd",
             str(worktree),
-            task["prompt"],
+            prompt,
         ]
         started = time.monotonic()
         try:
@@ -229,6 +252,7 @@ def run_condition(
         added_lines, new_files, patch = diff_metrics(worktree, base)
         new_dependencies = sorted(dependency_snapshot(worktree) - dependencies_before)
         test_result = run(task["test_command"], worktree, timeout=60)
+        quality_passed, quality_checks = evaluate_quality(task, worktree)
         usage = parse_usage(completed.stdout)
 
         artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -245,6 +269,8 @@ def run_condition(
             "exit_code": completed.returncode,
             "timed_out": timed_out,
             "tests_passed": test_result.returncode == 0,
+            "quality_passed": quality_passed,
+            "quality_checks": quality_checks,
             "added_lines": added_lines,
             "new_files": new_files,
             "new_dependencies": new_dependencies,
@@ -296,18 +322,19 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         "",
         "Token classes are reported separately because they behave differently. `Output` is what the agent writes, and is the figure Buzzcut is designed to move. `Fresh input` is uncached prompt content, which Buzzcut *increases* because its rules are loaded on every request. `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",
         "",
-        "| Task | Condition | Added lines | New files | New deps | Output | Fresh input | Wall time | Tests |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Task | Condition | Added lines | New files | New deps | Output | Fresh input | Wall time | Tests | Quality |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for task, condition in pairs:
         rows = rows_for(task, condition)
         passed = sum(1 for row in rows if row["tests_passed"] and not row["exit_code"])
+        quality = sum(1 for row in rows if row.get("quality_passed", True))
         lines.append(
             f"| {rows[0]['title']} | {condition} | {mean(rows, lambda r: r['added_lines']):.1f} | "
             f"{mean(rows, lambda r: len(r['new_files'])):.1f} | {mean(rows, lambda r: len(r['new_dependencies'])):.1f} | "
             f"{mean(rows, lambda r: token_split(r['usage'])['output']):.0f} | "
             f"{mean(rows, lambda r: token_split(r['usage'])['fresh_input']):.0f} | "
-            f"{mean(rows, lambda r: r['wall_seconds']):.2f}s | {passed}/{len(rows)} |"
+            f"{mean(rows, lambda r: r['wall_seconds']):.2f}s | {passed}/{len(rows)} | {quality}/{len(rows)} |"
         )
 
     totals: dict[str, dict[str, float]] = {}
@@ -337,13 +364,13 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
     ):
         base = totals["baseline"][key]
         buzz = totals["buzzcut"][key]
-        formatted = f"{base:.4f} → {buzz:.4f} USD" if key == "cost" else f"{base:g} → {buzz:g}"
+        formatted = f"{base:.4f} → {buzz:.4f} USD" if key == "cost" else f"{base:,.1f} → {buzz:,.1f}"
         lines.append(f"- {label}: {formatted} ({change_label(base, buzz)})")
 
     failures = [
         f"{row['task']}/{row['condition']}#{row.get('repeat', 1)}"
         for row in results
-        if not row["tests_passed"] or row["exit_code"]
+        if not row["tests_passed"] or not row.get("quality_passed", True) or row["exit_code"]
     ]
     lines.append(f"- unsuccessful runs: {', '.join(failures) if failures else 'none'}")
     lines.extend([

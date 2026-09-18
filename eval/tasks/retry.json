@@ -2,6 +2,7 @@
   "title": "Add invoice retries",
   "prompt": "Production reports intermittent failures while fetching invoices. Update InvoiceClient.fetch_invoice to retry a request up to two times. Keep its public API stable and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "uses the transport's existing retry option", "path": "invoice_client.py", "contains": ["retries=2"]}],
   "files": {
     "transport.py": "class Transport:\n    def request(self, path, *, retries=0):\n        raise NotImplementedError\n",
     "invoice_client.py": "class InvoiceClient:\n    def __init__(self, transport):\n        self.transport = transport\n\n    def fetch_invoice(self, invoice_id):\n        return self.transport.request(f\"/invoices/{invoice_id}\")\n",

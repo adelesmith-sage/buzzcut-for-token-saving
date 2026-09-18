@@ -2,6 +2,7 @@
   "title": "Cache template reads",
   "prompt": "Cache template file reads so repeated renders of the same path do not hit the filesystem again. Keep render's signature unchanged and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
   "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "quality_checks": [{"description": "reuses the existing cached file reader", "path": "templates.py", "contains": ["from file_cache import read_text", "read_text(path)"]}],
   "files": {
     "file_cache.py": "from functools import lru_cache\nfrom pathlib import Path\n\n\n@lru_cache(maxsize=128)\ndef read_text(path):\n    return Path(path).read_text(encoding=\"utf-8\")\n",
     "templates.py": "from pathlib import Path\n\n\ndef render(path, name):\n    return Path(path).read_text(encoding=\"utf-8\").replace(\"{{name}}\", name)\n",

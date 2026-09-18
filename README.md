@@ -8,8 +8,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Sage-internal-informational" alt="Sage internal">
-  <img src="https://img.shields.io/badge/tests-16%2F16%20passing-success" alt="16 of 16 evaluation runs passing">
-  <img src="https://img.shields.io/badge/dependencies-none-success" alt="No dependencies">
+  <img src="https://img.shields.io/badge/code%20written-28%25%20less-success" alt="28 percent less code written">
+  <img src="https://img.shields.io/badge/token%20cost-9%25%20more-orange" alt="9 percent higher token cost">
   <img src="https://img.shields.io/badge/works%20with-Copilot%20%2B%20Codex-blue" alt="Works with GitHub Copilot and Codex">
 </p>
 
@@ -27,7 +27,7 @@ Coding agents are rewarded for producing code, so they produce too much of it: a
 
 Buzzcut is a drop-in instruction set that makes them stop. It is **nine rules, one agent and three review commands** — a handful of Markdown files. No extension to install, no service to run, no dependency to add.
 
-In a paired evaluation over eight tasks, Buzzcut produced **21.2% fewer added lines**, **21.7% fewer output tokens** and **37.0% less wall-clock time**, with **all 16 runs passing their acceptance tests**. [See the numbers &rarr;](#measured-results)
+In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.9% fewer added lines** with no loss of correctness. It did **not** reduce tokens or wall-clock time — it costs about **9% more** per task. [See the numbers, including what did not work &rarr;](#measured-results)
 
 ## Works with
 
@@ -147,45 +147,69 @@ Rule 6 outranks the rest by construction: correctness, security, privacy and exp
 
 ## Measured results
 
-Eight synthetic tasks, each written so that an over-engineered solution is the tempting one. Every task ran twice — once with no project instructions (`baseline`), once with Buzzcut — in isolated temporary Git repositories, with condition order alternated to cancel ordering effects.
+Eight synthetic tasks, each written so that an over-engineered solution is the tempting one. Every task ran **three times per condition** — once with no project instructions (`baseline`), once with Buzzcut — in isolated temporary Git repositories, with condition order alternated to cancel ordering effects. Figures are means over the three repetitions.
 
 | Measure | Baseline | Buzzcut | Change |
 | --- | ---: | ---: | ---: |
-| Added lines | 33 | 26 | **&minus;21.2%** |
-| Output tokens | 12,023 | 9,408 | **&minus;21.7%** |
-| Wall-clock time | 617.1s | 388.9s | **&minus;37.0%** |
+| **Added lines** | 37.0 | 26.7 | **&minus;27.9%** |
+| Output tokens | 10,477 | 10,577 | +1.0% |
+| Fresh input tokens | 94,186 | 114,109 | +21.2% |
+| Price-weighted token cost | $0.3243 | $0.3541 | **+9.2%** |
+| Wall-clock time | 367.2s | 367.3s | 0.0% |
 | New files | 0 | 0 | no change |
 | New dependencies | 0 | 0 | no change |
-| Acceptance tests | 8/8 pass | 8/8 pass | no regression |
-| Fresh input tokens | 71,944 | 97,337 | +35.3% |
-| Price-weighted token cost | $0.3237 | $0.3209 | &minus;0.9% |
+| Acceptance tests | 24/24 pass | 23/24 pass | one stall, see below |
 
-The agent writes 21.7% less and deliberates 32.2% less (reasoning tokens fell from 2,202 to 1,492), finishes in a third less time, and still passes every test.
+**What Buzzcut does:** it writes about a quarter less code, on 6 of the 8 tasks. That effect is the most robust thing in the data — it survived three repetitions, a Codex version change and a rewrite of the rules file.
 
-### The honest catch
+**What Buzzcut does not do:** save tokens or time. Output tokens are flat. Fresh input rises 21% because the rules are loaded into every request. Wall-clock time is unchanged to within a tenth of a second across 48 runs. On list prices, a task costs roughly **9% more** with Buzzcut than without.
 
-The last two rows are the ones to read before you quote this anywhere. Buzzcut's rules are loaded into **every** request, which costs roughly 1,600 tokens of fresh input each time. That is why fresh input rises by a third even as output falls by a fifth. Weighted by list price, the two effects very nearly cancel: **token spend is about flat, not lower.**
+### The one failure, and why it matters
 
-So the case for Buzzcut is *less code to read, review and maintain*, delivered *faster* — not a smaller model bill. Anyone promising both from an always-on instruction file is either measuring output only or not counting their own prompt.
+One of the 24 Buzzcut runs made **no change at all** and asked a question instead. It was not a minimisation problem — it was the AI-label rule:
+
+> **AI labels:** label AI-assisted code using the format in Sage's GitHub Copilot guidance. If it is unavailable, ask; do not invent one.
+
+The agent could not find the label format in the repository, correctly declined to invent one, and stopped to ask:
+
+> "I'm blocked from editing only by the repository's mandatory AI-label rule … no format or guidance is present in this repository."
+
+In an interactive session that is reasonable behaviour. In an automated or non-interactive run it is a silent stall: the agent exits cleanly, having done nothing. It happened once in 24 runs (~4%), and it will happen in any repository that installs Buzzcut without the Sage label guidance present.
+
+**If you are rolling this out, make sure your repositories carry the label guidance, or change that rule to record the gap and proceed rather than block.** It is a compliance rule, so the wording is deliberately left as-is here pending a decision from whoever owns that policy.
+
+### Claims we have withdrawn
+
+An earlier version of this README claimed 21.7% fewer output tokens and 37.0% less wall-clock time, from a single run of each condition. Neither survived repetition:
+
+| Claim | Single run | Three runs | Verdict |
+| --- | ---: | ---: | --- |
+| Output tokens | &minus;21.7% | +1.0% | withdrawn |
+| Wall-clock time | &minus;37.0% | 0.0% | withdrawn — it was service latency |
+| Added lines | &minus;21.2% | &minus;27.9% | holds, and strengthened |
+
+The lesson is worth more than the numbers: with one run per condition, normal variance on these tasks is larger than the effect being measured. Use `--repeat` before believing anything here.
 
 > [!NOTE]
-> This is a small internal sample, not a statistically powered study. Each task ran once per condition; model nondeterminism and service latency affect the result. Fresh-input figures in particular swing widely between tasks (&minus;21% to +152%) because prompt-cache behaviour differs run to run. Treat all of this as directional, and reproduce it before quoting it as a benchmark.
+> Still a small internal sample, not a statistically powered study. Eight tasks, three repetitions, one model. Per-task output-token changes range from &minus;35% to +35%, so the flat aggregate hides wide swings. Reproduce it before quoting it.
 
-Per-task figures, method and caveats: [eval/RESULTS.md](eval/RESULTS.md). Raw metrics for the published run: [eval/runs/20260918T084536Z/metrics.json](eval/runs/20260918T084536Z/metrics.json).
+Per-task figures and method: [eval/RESULTS.md](eval/RESULTS.md). Raw metrics: [eval/runs/20260918T095109Z/metrics.json](eval/runs/20260918T095109Z/metrics.json).
 
 ### Reproduce it
 
 Requires Python 3 (standard library only) and the Codex CLI on your `PATH`.
 
 ```sh
-python3 eval/run_eval.py              # all eight tasks, both conditions
-python3 eval/run_eval.py --task retry # one task
+python3 eval/run_eval.py --repeat 3   # all eight tasks, both conditions, three times
+python3 eval/run_eval.py --task retry  # one task, once
 ```
+
+A `--repeat 3` pass is 48 Codex invocations and takes around 40 minutes.
 
 To re-render [eval/RESULTS.md](eval/RESULTS.md) from a run you already have, without spending anything:
 
 ```sh
-python3 eval/run_eval.py --rewrite-run 20260918T084536Z
+python3 eval/run_eval.py --rewrite-run 20260918T095109Z
 ```
 
 See [eval/README.md](eval/README.md) for options and what each measurement means.

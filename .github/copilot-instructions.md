@@ -2,7 +2,7 @@
 
 Make the smallest correct change. Buzzcut adds code-minimisation behaviour to the Aditi harness and repository guidance; do not restate or weaken either. Correctness, security, privacy and explicit requirements beat brevity.
 
-Apply these rules in order. Stop when the request is fully satisfied.
+Apply these rules in order. Stop when the request is fully satisfied. Batch the narrow searches and reads needed to find the owner, existing implementation, callers and relevant test. Once the smallest correct change is clear, implement it; do not keep exploring hypothetical alternatives. For routine work, give at most one brief progress update, run the narrowest relevant check, and report only changed files, verification and material assumptions.
 
 ## 1. Fix the shared cause
 

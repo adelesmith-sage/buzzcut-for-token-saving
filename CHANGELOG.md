@@ -16,8 +16,13 @@ First release intended for use across teams.
 
 ### Results
 
-First internal sample, recorded in [eval/RESULTS.md](eval/RESULTS.md): all 16 condition runs passed their acceptance tests, and Buzzcut used 21.2% fewer added lines, 21.7% fewer output tokens, 32.2% fewer reasoning tokens and 37.0% less wall-clock time. Neither condition added files or dependencies. Fresh input tokens rose 35.3%, because the rules are loaded on every request, leaving price-weighted token spend roughly flat. This is a small sample, not a statistically powered result.
+Measured over eight tasks with three repetitions per condition (48 runs), recorded in [eval/RESULTS.md](eval/RESULTS.md): Buzzcut produced **27.9% fewer added lines**, on 6 of 8 tasks, and added no files or dependencies.
+
+It did not reduce tokens or time. Output tokens were flat (+1.0%), fresh input rose 21.2% because the rules load on every request, and wall-clock time was unchanged (0.0%). Price-weighted token cost rose 9.2%.
+
+One of 24 Buzzcut runs stalled without making a change, blocked by the AI-label rule when the Sage label format was absent from the repository.
 
 ### Fixed
 
-- Token reporting previously combined cached input, fresh input and output into one figure. Cached input is over 90% of that total and is billed at roughly a tenth of the fresh rate, so the combined number tracked conversation length rather than the instructions, and understated the output effect as 4.5%. The three classes are now reported separately, alongside a price-weighted total.
+- Token reporting previously combined cached input, fresh input and output into one figure. Cached input is over 90% of that total and is billed at roughly a tenth of the fresh rate, so the combined number tracked conversation length rather than the instructions. The three classes are now reported separately, alongside a price-weighted total.
+- Added `--repeat` to the harness. The previous single-run-per-condition results claimed 21.7% fewer output tokens and 37.0% less wall-clock time; neither survived three repetitions, and both claims have been withdrawn. Normal variance on these tasks exceeds the effect being measured at n=1.
