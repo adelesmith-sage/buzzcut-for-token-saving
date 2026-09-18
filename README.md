@@ -201,9 +201,29 @@ After the repeated run, the always-loaded rules were cut from 5.48 KB to 3.99 KB
 
 This is an **optimization screen: one task, one repetition**, not a replacement for the repeated result above. Its cost reduction is in the same range as [Caveman's instruction-only external result](https://github.com/JuliusBrussee/caveman#what-the-skill-saves-writing-less), but the harnesses differ. [Ponytail's agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/main/benchmarks/results/2026-06-18-agentic.md) reports &minus;20% cost on feature tasks and &minus;7% on safety tasks using a different agent, model, repository and four repetitions; direct parity cannot be claimed. A full repeated Buzzcut rerun is required before promoting the screen to the headline.
 
+#### Why this screen cannot be generalised
+
+`cache` is not a neutral choice of task. Re-reading the three-repetition run above per task, it is **the most Buzzcut-favourable of the eight on cost**, and five of the eight are more expensive with Buzzcut, not less:
+
+| Task | Baseline | Buzzcut | Change |
+| --- | ---: | ---: | ---: |
+| **cache** — *the screen's task* | $0.04822 | $0.03713 | **&minus;23.0%** |
+| retry | $0.04557 | $0.04096 | &minus;10.1% |
+| logging | $0.04007 | $0.04041 | +0.8% |
+| timeout | $0.03544 | $0.03681 | +3.9% |
+| validation | $0.04632 | $0.05070 | +9.5% |
+| feature_flag | $0.04007 | $0.04912 | +22.6% |
+| endpoint | $0.03555 | $0.04782 | +34.5% |
+| csv_export | $0.03307 | $0.05117 | +54.7% |
+| **All eight** | **$0.0405** | **$0.0443** | **+9.2%** |
+
+Two things follow. First, a one-task screen on `cache` is the most flattering single measurement available in this harness — picking it proves nothing about the other seven. Second, even on `cache` the repeated data swings between &minus;2.0% and &minus;47.6% depending on which pair of runs you happen to compare, so the screen's &minus;8.8% carries no precision.
+
+The screen's own numbers show the mechanism. Both runs produced an identical two-line change and passed, yet baseline consumed **105,863 input tokens to Buzzcut's 92,609** — a 13,254-token gap on the same task with the same outcome. That gap is conversation-length variance, and it is roughly 29&times; the 454-token fresh-input difference the &minus;8.8% rests on. The screen is measuring how long each conversation happened to run, not what the rules file costs.
+
 Screen metrics: [eval/runs/20260918T104916Z/metrics.json](eval/runs/20260918T104916Z/metrics.json).
 
-The lesson is worth more than the numbers: with one run per condition, normal variance on these tasks is larger than the effect being measured. Use `--repeat` before believing anything here.
+The lesson is worth more than the numbers: with one run per condition, normal variance on these tasks is larger than the effect being measured. Use `--repeat` before believing anything here — and report every task, not the best one.
 
 > [!NOTE]
 > Still a small internal sample, not a statistically powered study. Eight tasks, three repetitions, one model. Per-task output-token changes range from &minus;35% to +35%, so the flat aggregate hides wide swings. Reproduce it before quoting it.

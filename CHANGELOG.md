@@ -13,6 +13,7 @@ All notable changes to Buzzcut are recorded here. This project follows [Semantic
 ### Optimization screen
 
 - A one-task, one-repeat cache screen of the compact rules measured 8.8% lower price-weighted token cost and 10.5% fewer output tokens, with identical two-line implementations and both acceptance and reuse checks passing. This is directional evidence only; the repeated eight-task result remains the headline until the compact rules receive a full rerun.
+- Qualified that screen against the repeated run. `cache` is the most Buzzcut-favourable of the eight tasks on cost (&minus;23.0% at three repeats); five of the eight are dearer with Buzzcut, up to +54.7%, and the aggregate is +9.2%. Across the repeated pairs `cache` alone swings from &minus;2.0% to &minus;47.6%. The screen's two runs also differ by 13,254 input tokens on an identical two-line change — about 29&times; the 454-token fresh-input difference the &minus;8.8% rests on — so it is measuring conversation length, not rules-file cost. Do not quote the screen without the per-task table.
 
 ## 1.0.0
 
