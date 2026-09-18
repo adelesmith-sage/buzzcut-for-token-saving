@@ -400,5 +400,137 @@
     "repeat": 1,
     "scale_files": 0,
     "tool_budget": true
+  },
+  {
+    "task": "timeout",
+    "title": "Apply request timeout",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing timeout option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 3,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 41.02,
+    "usage": {
+      "input_tokens": 92685,
+      "cached_input_tokens": 86144,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 943,
+      "reasoning_output_tokens": 184
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "timeout",
+    "title": "Apply request timeout",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing timeout option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 3,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 36.09,
+    "usage": {
+      "input_tokens": 102391,
+      "cached_input_tokens": 81152,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1177,
+      "reasoning_output_tokens": 134
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "validation",
+    "title": "Validate user email",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing email validator",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 5,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 60.6,
+    "usage": {
+      "input_tokens": 141479,
+      "cached_input_tokens": 132992,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2128,
+      "reasoning_output_tokens": 358
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "validation",
+    "title": "Validate user email",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing email validator",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 39.67,
+    "usage": {
+      "input_tokens": 95192,
+      "cached_input_tokens": 88064,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1290,
+      "reasoning_output_tokens": 277
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
   }
 ]

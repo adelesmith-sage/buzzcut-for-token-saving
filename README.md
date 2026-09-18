@@ -27,11 +27,11 @@ Coding agents are rewarded for producing code, so they produce too much of it: a
 
 Buzzcut is a drop-in instruction set that makes them stop. It is **nine rules, one agent and three review commands** — a handful of Markdown files. No extension to install, no service to run, no dependency to add.
 
-In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% fewer added lines** with no loss of correctness, for about a third of a penny more per task. [See the numbers &rarr;](#measured-results)
+In a paired evaluation over eight tasks, repeated three times each, Buzzcut produced **27.8% cleaner code diffs** with no loss of correctness, for about a third of a penny more per task. The latest enforced-wrapper screen cut price-weighted cost **26.9%**, output tokens **31.0%**, and wall time **23.9%** across the same eight fixtures; it is one repetition and has one reuse-quality miss, so it is not the headline yet. [See the numbers &rarr;](#measured-results)
 
 ### What it costs on a large codebase
 
-The overhead is a **flat 2,491 fresh input tokens per task** — the rules file, loaded once per request. It does not grow with the repository, so its share shrinks as the codebase grows: 21.2% on the ten-file eval fixtures, 5.0% at 50,000 tokens of context, 1.2% at 200,000.
+The overhead is a **flat 2,491 fresh input tokens per task** — the rules file, loaded once per request. It does not grow with the repository, so its share shrinks as the codebase grows: 21.2% on the ten-file eval fixtures, 5.0% at 50,000 tokens of context, 1.2% at 200,000. The shell wrappers add **zero model-prompt tokens** because they are injected through `PATH`; they cap ordinary `rg` output at 20 lines, `rg --files` at 50 lines, and direct `cat` reads at 100 lines.
 
 If the budget rules also prevent one full repository listing per task, and that listing runs to roughly one line per file at ~10 tokens a line, the modelled change in cost is:
 
@@ -193,10 +193,11 @@ Two smaller runs followed, after the rules gained lookup budgets:
 
 | Run | Shape | Added lines | Cost | Output tokens |
 | --- | --- | ---: | ---: | ---: |
+| `20260918T132225Z` | 8 tasks, n=1, wrappers on | **&minus;26.5%** | **&minus;26.9%** | **&minus;31.0%** |
 | `20260918T124411Z` | 8 tasks, n=1 | &minus;18.2% | +2.5% | &minus;24.2% |
 | `20260918T104916Z` | 1 task, n=1 | no change | &minus;8.8% | &minus;10.5% |
 
-Both are **screens, not results** — one repetition each. The repeated run above is the headline until they are reproduced at `--repeat 3`. Two specifics worth knowing if you quote them: the single-task screen used `cache`, which the repeated data shows is the most Buzzcut-favourable of the eight on cost (&minus;23.0%, against +54.7% for the worst), and the eight-task screen changed three variables at once, so nothing in it can be attributed to the rules alone.
+All three are **screens, not results** — one repetition each. The repeated run above is the headline until the wrapper configuration is reproduced at `--repeat 3`. The enforced-wrapper screen passed all 16 acceptance tests, but its Buzzcut feature-flag implementation missed one stricter reuse-quality check; the results file records that miss. The single-task screen used `cache`, which the repeated data shows is the most Buzzcut-favourable of the eight on cost (&minus;23.0%, against +54.7% for the worst), and the earlier eight-task screen changed three variables at once, so nothing in it can be attributed to the rules alone.
 
 For context, [Ponytail's agentic benchmark](https://github.com/DietrichGebert/ponytail/blob/main/benchmarks/results/2026-06-18-agentic.md) reports &minus;20% cost on feature tasks over four repetitions with a different agent, model and repository — encouraging, but not comparable.
 

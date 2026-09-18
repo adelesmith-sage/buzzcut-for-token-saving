@@ -432,6 +432,7 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         f"Codex CLI: `{cli_version}`",
         f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning",
         f"Repetitions: {repeats} per condition",
+        f"Shell output wrappers: {'on' if results[0].get('tool_budget', False) else 'off'}",
         "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`; aggregate changes use only matched pairs where both agents completed and passed acceptance tests.",
         "",
         "Price-weighted token cost is the primary efficiency measure. Token classes are also reported separately: `Output` is what the agent writes; `Fresh input` is uncached prompt content and can rise because Buzzcut's rules load on every request; `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",
