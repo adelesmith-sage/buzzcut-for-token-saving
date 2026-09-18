@@ -265,16 +265,33 @@ def change_label(baseline: float, buzzcut: float) -> str:
 
 
 def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) -> None:
+    repeats = max((row.get("repeat", 1) for row in results), default=1)
     task_order = {task: index for index, task in enumerate(dict.fromkeys(row["task"] for row in results))}
-    results = sorted(results, key=lambda row: (task_order[row["task"]], row["condition"] != "baseline"))
+    pairs = sorted(
+        {(row["task"], row["condition"]) for row in results},
+        key=lambda pair: (task_order[pair[0]], pair[1] != "baseline"),
+    )
+
+    def rows_for(task: str, condition: str) -> list[dict[str, Any]]:
+        return [row for row in results if row["task"] == task and row["condition"] == condition]
+
+    def mean(rows: list[dict[str, Any]], value: Any) -> float:
+        return sum(value(row) for row in rows) / len(rows)
+
+    sample = (
+        f"Each task was run once per condition; model nondeterminism and service latency can affect results."
+        if repeats == 1
+        else f"Each task was run {repeats} times per condition and the figures below are means; model nondeterminism and service latency still affect results."
+    )
     lines = [
         "# Buzzcut evaluation results",
         "",
-        "> This is a small internal sample, not a statistically powered study. Each task was run once per condition; model nondeterminism and service latency can affect results.",
+        f"> This is a small internal sample, not a statistically powered study. {sample}",
         "",
         f"Run: `{run_id}`  ",
         f"Codex CLI: `{cli_version}`  ",
         f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning  ",
+        f"Repetitions: {repeats} per condition  ",
         "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`.",
         "",
         "Token classes are reported separately because they behave differently. `Output` is what the agent writes, and is the figure Buzzcut is designed to move. `Fresh input` is uncached prompt content, which Buzzcut *increases* because its rules are loaded on every request. `Cached input` is replayed prompt content, billed at roughly a tenth of the fresh rate.",
@@ -282,29 +299,29 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         "| Task | Condition | Added lines | New files | New deps | Output | Fresh input | Wall time | Tests |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
-    for result in results:
-        split = token_split(result["usage"])
-        status = "pass" if result["tests_passed"] else "fail"
-        if result["exit_code"]:
-            status = f"{status}; agent exit {result['exit_code']}"
+    for task, condition in pairs:
+        rows = rows_for(task, condition)
+        passed = sum(1 for row in rows if row["tests_passed"] and not row["exit_code"])
         lines.append(
-            f"| {result['title']} | {result['condition']} | {result['added_lines']} | "
-            f"{len(result['new_files'])} | {len(result['new_dependencies'])} | {split['output']} | "
-            f"{split['fresh_input']} | {result['wall_seconds']:.2f}s | {status} |"
+            f"| {rows[0]['title']} | {condition} | {mean(rows, lambda r: r['added_lines']):.1f} | "
+            f"{mean(rows, lambda r: len(r['new_files'])):.1f} | {mean(rows, lambda r: len(r['new_dependencies'])):.1f} | "
+            f"{mean(rows, lambda r: token_split(r['usage'])['output']):.0f} | "
+            f"{mean(rows, lambda r: token_split(r['usage'])['fresh_input']):.0f} | "
+            f"{mean(rows, lambda r: r['wall_seconds']):.2f}s | {passed}/{len(rows)} |"
         )
 
-    grouped = {condition: [r for r in results if r["condition"] == condition] for condition in ("baseline", "buzzcut")}
     totals: dict[str, dict[str, float]] = {}
-    for condition, rows in grouped.items():
+    for condition in ("baseline", "buzzcut"):
+        per_task = [rows_for(task, condition) for task, cond in pairs if cond == condition]
         totals[condition] = {
-            "added_lines": sum(row["added_lines"] for row in rows),
-            "new_files": sum(len(row["new_files"]) for row in rows),
-            "new_dependencies": sum(len(row["new_dependencies"]) for row in rows),
-            "output": sum(token_split(row["usage"])["output"] for row in rows),
-            "fresh_input": sum(token_split(row["usage"])["fresh_input"] for row in rows),
-            "cached_input": sum(token_split(row["usage"])["cached_input"] for row in rows),
-            "cost": sum(weighted_cost(row["usage"]) for row in rows),
-            "wall_seconds": sum(row["wall_seconds"] for row in rows),
+            "added_lines": sum(mean(rows, lambda r: r["added_lines"]) for rows in per_task),
+            "new_files": sum(mean(rows, lambda r: len(r["new_files"])) for rows in per_task),
+            "new_dependencies": sum(mean(rows, lambda r: len(r["new_dependencies"])) for rows in per_task),
+            "output": sum(mean(rows, lambda r: token_split(r["usage"])["output"]) for rows in per_task),
+            "fresh_input": sum(mean(rows, lambda r: token_split(r["usage"])["fresh_input"]) for rows in per_task),
+            "cached_input": sum(mean(rows, lambda r: token_split(r["usage"])["cached_input"]) for rows in per_task),
+            "cost": sum(mean(rows, lambda r: weighted_cost(r["usage"])) for rows in per_task),
+            "wall_seconds": sum(mean(rows, lambda r: r["wall_seconds"]) for rows in per_task),
         }
 
     lines.extend(["", "Aggregate change from baseline to Buzzcut:"])
@@ -323,7 +340,11 @@ def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) 
         formatted = f"{base:.4f} → {buzz:.4f} USD" if key == "cost" else f"{base:g} → {buzz:g}"
         lines.append(f"- {label}: {formatted} ({change_label(base, buzz)})")
 
-    failures = [f"{row['task']}/{row['condition']}" for row in results if not row["tests_passed"] or row["exit_code"]]
+    failures = [
+        f"{row['task']}/{row['condition']}#{row.get('repeat', 1)}"
+        for row in results
+        if not row["tests_passed"] or row["exit_code"]
+    ]
     lines.append(f"- unsuccessful runs: {', '.join(failures) if failures else 'none'}")
     lines.extend([
         "",
@@ -339,6 +360,7 @@ def main() -> int:
     parser.add_argument("--model", default=os.environ.get("CODEX_MODEL", DEFAULT_MODEL))
     parser.add_argument("--reasoning", default=os.environ.get("CODEX_REASONING", DEFAULT_REASONING))
     parser.add_argument("--timeout", type=int, default=600, help="Seconds allowed per Codex run")
+    parser.add_argument("--repeat", type=int, default=1, help="Repetitions per condition; results are reported as means")
     parser.add_argument("--rewrite-run", help="Regenerate RESULTS.md from a stored run's metrics.json instead of calling Codex")
     args = parser.parse_args()
 
@@ -363,24 +385,30 @@ def main() -> int:
             parser.error(f"unknown task(s): {', '.join(sorted(missing))}")
     if not task_paths:
         parser.error("no tasks selected")
+    if args.repeat < 1:
+        parser.error("--repeat must be at least 1")
 
     run_id = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = ROOT / "eval" / "runs" / run_id
     results: list[dict[str, Any]] = []
-    for index, task_path in enumerate(task_paths):
-        conditions = ("baseline", "buzzcut") if index % 2 == 0 else ("buzzcut", "baseline")
-        for condition in conditions:
-            print(f"[{len(results) + 1}/{len(task_paths) * 2}] {task_path.stem}: {condition}", flush=True)
-            result = run_condition(
-                task_path,
-                condition,
-                run_dir / task_path.stem / condition,
-                args.model,
-                args.reasoning,
-                args.timeout,
-            )
-            results.append(result)
-            (run_dir / "metrics.json").write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+    total = len(task_paths) * 2 * args.repeat
+    for repeat in range(1, args.repeat + 1):
+        for index, task_path in enumerate(task_paths):
+            # Alternate which condition goes first so ordering effects cancel.
+            conditions = ("baseline", "buzzcut") if (index + repeat) % 2 == 0 else ("buzzcut", "baseline")
+            for condition in conditions:
+                print(f"[{len(results) + 1}/{total}] {task_path.stem}: {condition} (repeat {repeat})", flush=True)
+                result = run_condition(
+                    task_path,
+                    condition,
+                    run_dir / task_path.stem / condition / f"r{repeat}",
+                    args.model,
+                    args.reasoning,
+                    args.timeout,
+                )
+                result["repeat"] = repeat
+                results.append(result)
+                (run_dir / "metrics.json").write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
 
     write_results(results, run_id, codex_version())
     print(f"Wrote {RESULTS_PATH.relative_to(ROOT)}", flush=True)

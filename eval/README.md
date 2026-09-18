@@ -10,7 +10,9 @@ Run all tasks from the repository root:
 python3 eval/run_eval.py
 ```
 
-Use `--task retry` to run one fixture (repeat the flag for several), or `--model` and `--reasoning` to pin another Codex configuration. `--timeout` caps each run, in seconds. `--rewrite-run <run id>` re-renders `RESULTS.md` from a stored `metrics.json` without calling Codex, which is how to pick up a reporting change without paying for the runs again.
+Use `--task retry` to run one fixture (repeat the flag for several), or `--model` and `--reasoning` to pin another Codex configuration. `--timeout` caps each run, in seconds. `--repeat N` runs every task N times per condition and reports means, which is the main defence against model nondeterminism. `--rewrite-run <run id>` re-renders `RESULTS.md` from a stored `metrics.json` without calling Codex, which is how to pick up a reporting change without paying for the runs again.
+
+A full pass is `tasks x 2 conditions x repeats` Codex invocations, so `--repeat 3` over eight tasks is 48 runs and takes roughly an hour.
 
 Each condition runs in a disposable temporary Git repository, and condition order alternates by task so that ordering effects cancel. The comparable summary is written to [RESULTS.md](RESULTS.md). Per-run output goes to `runs/<run id>/`, where `metrics.json` is tracked as evidence and the raw JSONL, stderr and patches beside it stay local.
 

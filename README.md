@@ -7,7 +7,7 @@
 <p align="center"><strong>Keep code short back and sides. Nothing fancy on top.</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/licence-MIT-informational" alt="MIT licence">
+  <img src="https://img.shields.io/badge/Sage-internal-informational" alt="Sage internal">
   <img src="https://img.shields.io/badge/tests-16%2F16%20passing-success" alt="16 of 16 evaluation runs passing">
   <img src="https://img.shields.io/badge/dependencies-none-success" alt="No dependencies">
   <img src="https://img.shields.io/badge/works%20with-Copilot%20%2B%20Codex-blue" alt="Works with GitHub Copilot and Codex">
@@ -227,6 +227,6 @@ A rule earns its place by changing model behaviour toward a smaller correct chan
 
 ## Licence and credit
 
-Released under the [MIT Licence](LICENSE).
+Internal Sage repository. No open-source licence is granted, and no `LICENSE` file is included; distribution and reuse follow Sage internal policy. Confirm with your Open Source Procedure contact before sharing this outside the company.
 
-The name and the review-command shape are inspired by Ponytail, which is MIT licensed. No Ponytail code is included in this repository; the rules, skills and evaluation harness are original.
+The name and the review-command shape are inspired by Ponytail. No Ponytail code is included here; the rules, agent, skills and evaluation harness are original.
