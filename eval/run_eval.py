@@ -119,7 +119,8 @@ def materialise(
         ["git", "commit", "-q", "-m", "Initial fixture"],
     ]
     for command in commands:
-        completed = run(command, destination)
+        # Large fixtures make `git add -A` far exceed the default subprocess timeout.
+        completed = run(command, destination, timeout=60 + scale_files // 10)
         if completed.returncode:
             raise RuntimeError(completed.stderr.strip() or "Failed to initialise fixture")
     return run(["git", "rev-parse", "HEAD"], destination).stdout.strip()

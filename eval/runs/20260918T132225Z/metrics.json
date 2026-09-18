@@ -31,5 +31,374 @@
     "repeat": 1,
     "scale_files": 0,
     "tool_budget": true
+  },
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 50.17,
+    "usage": {
+      "input_tokens": 133375,
+      "cached_input_tokens": 121984,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1724,
+      "reasoning_output_tokens": 537
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "csv_export",
+    "title": "Add CSV export",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing CSV writer",
+        "passed": false,
+        "missing": [
+          "from csv_tools import write_rows",
+          "write_rows(users,"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 10,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 39.68,
+    "usage": {
+      "input_tokens": 116974,
+      "cached_input_tokens": 100224,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1221,
+      "reasoning_output_tokens": 211
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "csv_export",
+    "title": "Add CSV export",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing CSV writer",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 6,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 28.1,
+    "usage": {
+      "input_tokens": 92222,
+      "cached_input_tokens": 75392,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 819,
+      "reasoning_output_tokens": 63
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "endpoint",
+    "title": "Add suspend endpoint",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses UserService.set_status",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 31.17,
+    "usage": {
+      "input_tokens": 107029,
+      "cached_input_tokens": 96384,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1037,
+      "reasoning_output_tokens": 173
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "endpoint",
+    "title": "Add suspend endpoint",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses UserService.set_status",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 45.27,
+    "usage": {
+      "input_tokens": 101359,
+      "cached_input_tokens": 95488,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1122,
+      "reasoning_output_tokens": 147
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "feature_flag",
+    "title": "Add a refund feature flag",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the repository's feature-flag parser",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 5,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 54.16,
+    "usage": {
+      "input_tokens": 106063,
+      "cached_input_tokens": 84224,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1103,
+      "reasoning_output_tokens": 194
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "feature_flag",
+    "title": "Add a refund feature flag",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the repository's feature-flag parser",
+        "passed": false,
+        "missing": [
+          "from flags import is_enabled",
+          "is_enabled(environment, \"FAST_REFUNDS\")"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 1,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 54.67,
+    "usage": {
+      "input_tokens": 91539,
+      "cached_input_tokens": 80768,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1059,
+      "reasoning_output_tokens": 193
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "logging",
+    "title": "Log slow requests",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing slow-request logger",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 38.44,
+    "usage": {
+      "input_tokens": 94999,
+      "cached_input_tokens": 87936,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1013,
+      "reasoning_output_tokens": 216
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "logging",
+    "title": "Log slow requests",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing slow-request logger",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 65.82,
+    "usage": {
+      "input_tokens": 120433,
+      "cached_input_tokens": 107904,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1973,
+      "reasoning_output_tokens": 337
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "retry",
+    "title": "Add invoice retries",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing retry option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 1,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 45.87,
+    "usage": {
+      "input_tokens": 118379,
+      "cached_input_tokens": 108160,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1258,
+      "reasoning_output_tokens": 185
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
+  },
+  {
+    "task": "retry",
+    "title": "Add invoice retries",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "uses the transport's existing retry option",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 1,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 32.14,
+    "usage": {
+      "input_tokens": 91179,
+      "cached_input_tokens": 81152,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 860,
+      "reasoning_output_tokens": 94
+    },
+    "repeat": 1,
+    "scale_files": 0,
+    "tool_budget": true
   }
 ]

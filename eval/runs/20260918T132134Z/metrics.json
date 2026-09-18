@@ -34,5 +34,106 @@
     "repeat": 1,
     "scale_files": 5000,
     "tool_budget": false
+  },
+  {
+    "task": "cache",
+    "title": "Cache template reads",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the existing cached file reader",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 2,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 41.56,
+    "usage": {
+      "input_tokens": 114568,
+      "cached_input_tokens": 106368,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1255,
+      "reasoning_output_tokens": 243
+    },
+    "repeat": 1,
+    "scale_files": 5000,
+    "tool_budget": false
+  },
+  {
+    "task": "endpoint",
+    "title": "Add suspend endpoint",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses UserService.set_status",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 69.73,
+    "usage": {
+      "input_tokens": 223445,
+      "cached_input_tokens": 199424,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1304,
+      "reasoning_output_tokens": 166
+    },
+    "repeat": 1,
+    "scale_files": 5000,
+    "tool_budget": false
+  },
+  {
+    "task": "endpoint",
+    "title": "Add suspend endpoint",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": false,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses UserService.set_status",
+        "passed": false,
+        "missing": [
+          "service.set_status(user_id, \"suspended\")"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 0,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 38.73,
+    "usage": {
+      "input_tokens": 60346,
+      "cached_input_tokens": 54656,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1058,
+      "reasoning_output_tokens": 622
+    },
+    "repeat": 1,
+    "scale_files": 5000,
+    "tool_budget": false
   }
 ]
