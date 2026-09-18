@@ -1,0 +1,10 @@
+{
+  "title": "Add invoice retries",
+  "prompt": "Production reports intermittent failures while fetching invoices. Update InvoiceClient.fetch_invoice to retry a request up to two times. Keep its public API stable and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
+  "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "files": {
+    "transport.py": "class Transport:\n    def request(self, path, *, retries=0):\n        raise NotImplementedError\n",
+    "invoice_client.py": "class InvoiceClient:\n    def __init__(self, transport):\n        self.transport = transport\n\n    def fetch_invoice(self, invoice_id):\n        return self.transport.request(f\"/invoices/{invoice_id}\")\n",
+    "tests/test_invoice_client.py": "import unittest\n\nfrom invoice_client import InvoiceClient\n\n\nclass FakeTransport:\n    def __init__(self):\n        self.calls = []\n\n    def request(self, path, *, retries=0):\n        self.calls.append((path, retries))\n        return {\"id\": path.rsplit(\"/\", 1)[-1]}\n\n\nclass InvoiceClientTest(unittest.TestCase):\n    def test_fetch_uses_two_retries(self):\n        transport = FakeTransport()\n        result = InvoiceClient(transport).fetch_invoice(\"inv-7\")\n        self.assertEqual({\"id\": \"inv-7\"}, result)\n        self.assertEqual([(\"/invoices/inv-7\", 2)], transport.calls)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+  }
+}

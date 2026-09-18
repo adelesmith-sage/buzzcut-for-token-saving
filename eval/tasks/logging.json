@@ -1,0 +1,10 @@
+{
+  "title": "Log slow requests",
+  "prompt": "Log requests taking at least one second as slow in middleware.handle. Preserve its signature and return value and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
+  "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "files": {
+    "telemetry.py": "def log_if_slow(logger, path, elapsed, threshold=1.0):\n    if elapsed >= threshold:\n        logger.warning(\"slow request path=%s elapsed=%.3f\", path, elapsed)\n",
+    "middleware.py": "def handle(handler, request, logger, clock):\n    started = clock()\n    response = handler(request)\n    elapsed = clock() - started\n    return response\n",
+    "tests/test_middleware.py": "import unittest\n\nfrom middleware import handle\n\n\nclass Logger:\n    def __init__(self):\n        self.warnings = []\n\n    def warning(self, message, *args):\n        self.warnings.append(message % args)\n\n\nclass Clock:\n    def __init__(self, values):\n        self.values = iter(values)\n\n    def __call__(self):\n        return next(self.values)\n\n\nclass MiddlewareTest(unittest.TestCase):\n    def test_slow_request_is_logged(self):\n        logger = Logger()\n        response = handle(lambda request: \"ok\", {\"path\": \"/health\"}, logger, Clock([2.0, 3.2]))\n        self.assertEqual(\"ok\", response)\n        self.assertEqual([\"slow request path=/health elapsed=1.200\"], logger.warnings)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+  }
+}

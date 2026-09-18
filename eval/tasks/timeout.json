@@ -1,0 +1,11 @@
+{
+  "title": "Apply request timeout",
+  "prompt": "Apply Settings.request_timeout to HealthClient.check requests. Preserve the public API and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
+  "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "files": {
+    "settings.py": "from dataclasses import dataclass\n\n\n@dataclass(frozen=True)\nclass Settings:\n    request_timeout: float = 5.0\n",
+    "transport.py": "class Transport:\n    def request(self, path, *, timeout=None):\n        raise NotImplementedError\n",
+    "health.py": "class HealthClient:\n    def __init__(self, transport, settings):\n        self.transport = transport\n        self.settings = settings\n\n    def check(self):\n        return self.transport.request(\"/health\")\n",
+    "tests/test_health.py": "import unittest\n\nfrom health import HealthClient\nfrom settings import Settings\n\n\nclass FakeTransport:\n    def __init__(self):\n        self.timeout = None\n\n    def request(self, path, *, timeout=None):\n        self.timeout = timeout\n        return {\"status\": \"ok\"}\n\n\nclass HealthClientTest(unittest.TestCase):\n    def test_configured_timeout_is_used(self):\n        transport = FakeTransport()\n        result = HealthClient(transport, Settings(request_timeout=2.5)).check()\n        self.assertEqual({\"status\": \"ok\"}, result)\n        self.assertEqual(2.5, transport.timeout)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+  }
+}

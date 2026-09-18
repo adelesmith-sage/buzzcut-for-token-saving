@@ -1,0 +1,7 @@
+.DS_Store
+
+# Raw audit artifacts from eval runs (JSONL, stderr, patches) stay local.
+# The published metrics for each run remain tracked as evidence.
+/eval/runs/**
+!/eval/runs/**/
+!/eval/runs/**/metrics.json

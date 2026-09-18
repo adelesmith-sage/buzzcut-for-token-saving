@@ -1,0 +1,10 @@
+{
+  "title": "Add CSV export",
+  "prompt": "Add export_users_csv(users) to reports.py. It must return CSV text with id and email columns and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
+  "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "files": {
+    "csv_tools.py": "import csv\nimport io\n\n\ndef write_rows(rows, fieldnames):\n    output = io.StringIO(newline=\"\")\n    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction=\"ignore\")\n    writer.writeheader()\n    writer.writerows(rows)\n    return output.getvalue()\n",
+    "reports.py": "import json\n\n\ndef export_users_json(users):\n    return json.dumps(users)\n",
+    "tests/test_reports.py": "import unittest\n\nimport reports\n\n\nclass ReportsTest(unittest.TestCase):\n    def test_export_users_csv(self):\n        users = [{\"id\": \"u1\", \"email\": \"ada@example.test\", \"internal\": True}]\n        self.assertEqual(\"id,email\\r\\nu1,ada@example.test\\r\\n\", reports.export_users_csv(users))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+  }
+}

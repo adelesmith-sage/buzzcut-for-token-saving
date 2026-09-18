@@ -1,0 +1,51 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rule files are identical
+        run: |
+          cmp AGENTS.md .github/copilot-instructions.md \
+            || { echo "::error::AGENTS.md and .github/copilot-instructions.md have drifted. Make them identical."; exit 1; }
+
+      - name: Kit files are well formed
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, re, sys
+
+          errors = []
+
+          for skill in sorted(pathlib.Path(".github/skills").glob("*/SKILL.md")):
+              text = skill.read_text(encoding="utf-8")
+              front = re.match(r"---\n(.*?)\n---\n", text, re.DOTALL)
+              if not front:
+                  errors.append(f"{skill}: missing YAML frontmatter")
+                  continue
+              fields = dict(re.findall(r"^(name|description):\s*(.+)$", front.group(1), re.MULTILINE))
+              if fields.get("name") != skill.parent.name:
+                  errors.append(f"{skill}: name '{fields.get('name')}' does not match folder '{skill.parent.name}'")
+              if not fields.get("description"):
+                  errors.append(f"{skill}: missing description")
+
+          for task in sorted(pathlib.Path("eval/tasks").glob("*.json")):
+              try:
+                  data = json.loads(task.read_text(encoding="utf-8"))
+              except json.JSONDecodeError as exc:
+                  errors.append(f"{task}: invalid JSON ({exc})")
+                  continue
+              missing = {"title", "prompt", "test_command", "files"} - data.keys()
+              if missing:
+                  errors.append(f"{task}: missing key(s) {', '.join(sorted(missing))}")
+
+          for error in errors:
+              print(f"::error::{error}")
+          sys.exit(1 if errors else 0)
+          PY

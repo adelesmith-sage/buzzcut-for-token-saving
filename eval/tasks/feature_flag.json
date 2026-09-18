@@ -1,0 +1,10 @@
+{
+  "title": "Add a refund feature flag",
+  "prompt": "Add a FAST_REFUNDS feature flag. It must default off and make refund_mode return 'fast' when enabled, while preserving today's 'standard' result otherwise. Make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
+  "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "files": {
+    "flags.py": "TRUE_VALUES = {\"1\", \"true\", \"yes\", \"on\"}\n\n\ndef is_enabled(environment, name):\n    return environment.get(name, \"\").lower() in TRUE_VALUES\n",
+    "refunds.py": "def refund_mode(environment):\n    return \"standard\"\n",
+    "tests/test_refunds.py": "import unittest\n\nfrom refunds import refund_mode\n\n\nclass RefundModeTest(unittest.TestCase):\n    def test_fast_refunds_are_off_by_default(self):\n        self.assertEqual(\"standard\", refund_mode({}))\n\n    def test_fast_refunds_can_be_enabled(self):\n        self.assertEqual(\"fast\", refund_mode({\"FAST_REFUNDS\": \"true\"}))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+  }
+}

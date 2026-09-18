@@ -1,0 +1,10 @@
+{
+  "title": "Add suspend endpoint",
+  "prompt": "Add a suspend_user endpoint alongside activate_user. It must set the user's status to 'suspended' and return the updated user. Keep the existing endpoint style and make the included tests pass. Work directly in the repository, run the relevant tests, and do not commit.",
+  "test_command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-q"],
+  "files": {
+    "users.py": "class UserService:\n    def __init__(self, users):\n        self.users = users\n\n    def set_status(self, user_id, status):\n        user = self.users[user_id]\n        user[\"status\"] = status\n        return user\n",
+    "api.py": "def activate_user(user_id, service):\n    return service.set_status(user_id, \"active\")\n",
+    "tests/test_api.py": "import unittest\n\nimport api\nfrom users import UserService\n\n\nclass UserEndpointTest(unittest.TestCase):\n    def test_suspend_user(self):\n        service = UserService({\"u1\": {\"id\": \"u1\", \"status\": \"active\"}})\n        result = api.suspend_user(\"u1\", service)\n        self.assertEqual(\"suspended\", result[\"status\"])\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+  }
+}

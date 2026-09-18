@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""Run paired Codex evaluations with and without Buzzcut instructions."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import time
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+TASKS_DIR = ROOT / "eval" / "tasks"
+RESULTS_PATH = ROOT / "eval" / "RESULTS.md"
+DEFAULT_MODEL = "gpt-5.6-sol"
+DEFAULT_REASONING = "high"
+
+
+def run(command: list[str], cwd: Path, *, timeout: int = 60) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def materialise(task: dict[str, Any], destination: Path, with_buzzcut: bool) -> str:
+    for relative, content in task["files"].items():
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+
+    (destination / ".gitignore").write_text("__pycache__/\n*.py[cod]\n", encoding="utf-8")
+    (destination / "SAGE_AI_GUIDANCE.md").write_text(
+        "# Synthetic evaluation fixture\n\n"
+        "These disposable fixtures are exempt from in-source AI labels.\n",
+        encoding="utf-8",
+    )
+    if with_buzzcut:
+        shutil.copy2(ROOT / "AGENTS.md", destination / "AGENTS.md")
+
+    commands = [
+        ["git", "init", "-q", "-b", "main"],
+        ["git", "config", "user.name", "Buzzcut Eval"],
+        ["git", "config", "user.email", "buzzcut-eval@example.invalid"],
+        ["git", "add", "-A"],
+        ["git", "commit", "-q", "-m", "Initial fixture"],
+    ]
+    for command in commands:
+        completed = run(command, destination)
+        if completed.returncode:
+            raise RuntimeError(completed.stderr.strip() or "Failed to initialise fixture")
+    return run(["git", "rev-parse", "HEAD"], destination).stdout.strip()
+
+
+def dependency_snapshot(root: Path) -> set[str]:
+    dependencies: set[str] = set()
+
+    package_json = root / "package.json"
+    if package_json.exists():
+        package = json.loads(package_json.read_text(encoding="utf-8"))
+        for group in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+            dependencies.update(f"npm:{name}" for name in package.get(group, {}))
+
+    pyproject = root / "pyproject.toml"
+    if pyproject.exists():
+        section = ""
+        in_dependency_array = False
+        for raw_line in pyproject.read_text(encoding="utf-8").splitlines():
+            line = raw_line.split("#", 1)[0].strip()
+            if line.startswith("[") and line.endswith("]"):
+                section = line.strip("[]")
+                in_dependency_array = False
+            if line.startswith(("dependencies = [", "optional-dependencies = [")):
+                in_dependency_array = True
+            if in_dependency_array and line not in ("dependencies = [", "optional-dependencies = [", "]"):
+                dependencies.add(f"pyproject:{line.rstrip(',')}")
+            if in_dependency_array and line.endswith("]"):
+                in_dependency_array = False
+            if "dependencies" in section and "=" in line:
+                name = line.split("=", 1)[0].strip().strip('"')
+                if name and name != "python":
+                    dependencies.add(f"pyproject:{section}:{name}")
+
+    for requirements in root.glob("requirements*.txt"):
+        for line in requirements.read_text(encoding="utf-8").splitlines():
+            value = line.strip()
+            if value and not value.startswith(("#", "-")):
+                dependencies.add(f"python:{value}")
+
+    cargo = root / "Cargo.toml"
+    if cargo.exists():
+        section = ""
+        for raw_line in cargo.read_text(encoding="utf-8").splitlines():
+            line = raw_line.split("#", 1)[0].strip()
+            if line.startswith("[") and line.endswith("]"):
+                section = line.strip("[]")
+            elif section in ("dependencies", "dev-dependencies", "build-dependencies") and "=" in line:
+                dependencies.add(f"cargo:{line.split('=', 1)[0].strip()}")
+
+    go_mod = root / "go.mod"
+    if go_mod.exists():
+        in_block = False
+        for raw_line in go_mod.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if line == "require (":
+                in_block = True
+            elif in_block and line == ")":
+                in_block = False
+            elif line.startswith("require "):
+                dependencies.add(f"go:{line.split()[1]}")
+            elif in_block and line and not line.startswith("//"):
+                dependencies.add(f"go:{line.split()[0]}")
+
+    return dependencies
+
+
+def parse_usage(jsonl: str) -> dict[str, int]:
+    usage: dict[str, int] = {}
+    for line in jsonl.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "turn.completed":
+            usage = event.get("usage", {})
+    return {key: int(value) for key, value in usage.items() if isinstance(value, (int, float))}
+
+
+def diff_metrics(root: Path, base: str) -> tuple[int, list[str], str]:
+    run(["git", "add", "-A"], root)
+    patch = run(["git", "diff", "--binary", base], root).stdout
+    numstat = run(["git", "diff", "--numstat", base], root).stdout
+    added_lines = 0
+    for line in numstat.splitlines():
+        added, _, _ = line.split("\t", 2)
+        if added.isdigit():
+            added_lines += int(added)
+    new_files = [
+        line
+        for line in run(["git", "diff", "--diff-filter=A", "--name-only", base], root).stdout.splitlines()
+        if line
+    ]
+    return added_lines, new_files, patch
+
+
+def run_condition(
+    task_path: Path,
+    condition: str,
+    artifact_dir: Path,
+    model: str,
+    reasoning: str,
+    timeout: int,
+) -> dict[str, Any]:
+    task = json.loads(task_path.read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory(prefix=f"buzzcut-{task_path.stem}-{condition}-") as temp:
+        worktree = Path(temp)
+        base = materialise(task, worktree, condition == "buzzcut")
+        dependencies_before = dependency_snapshot(worktree)
+        command = [
+            "codex",
+            "exec",
+            "--ephemeral",
+            "--json",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--approve-for-me",
+            "--model",
+            model,
+            "--config",
+            f'model_reasoning_effort="{reasoning}"',
+            "--cd",
+            str(worktree),
+            task["prompt"],
+        ]
+        started = time.monotonic()
+        try:
+            completed = run(command, worktree, timeout=timeout)
+            timed_out = False
+        except subprocess.TimeoutExpired as error:
+            completed = subprocess.CompletedProcess(
+                command,
+                124,
+                stdout=error.stdout or "",
+                stderr=error.stderr or "Timed out",
+            )
+            timed_out = True
+        elapsed = time.monotonic() - started
+        added_lines, new_files, patch = diff_metrics(worktree, base)
+        new_dependencies = sorted(dependency_snapshot(worktree) - dependencies_before)
+        test_result = run(task["test_command"], worktree, timeout=60)
+        usage = parse_usage(completed.stdout)
+
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        (artifact_dir / "events.jsonl").write_text(completed.stdout, encoding="utf-8")
+        (artifact_dir / "stderr.txt").write_text(completed.stderr, encoding="utf-8")
+        (artifact_dir / "changes.patch").write_text(patch, encoding="utf-8")
+
+        return {
+            "task": task_path.stem,
+            "title": task["title"],
+            "condition": condition,
+            "model": model,
+            "reasoning": reasoning,
+            "exit_code": completed.returncode,
+            "timed_out": timed_out,
+            "tests_passed": test_result.returncode == 0,
+            "added_lines": added_lines,
+            "new_files": new_files,
+            "new_dependencies": new_dependencies,
+            "wall_seconds": round(elapsed, 2),
+            "usage": usage,
+        }
+
+
+def change_label(baseline: float, buzzcut: float) -> str:
+    if baseline == 0:
+        return "no change" if buzzcut == 0 else "increase from zero"
+    change = ((buzzcut - baseline) / baseline) * 100
+    if change < 0:
+        return f"{-change:.1f}% reduction"
+    if change > 0:
+        return f"{change:.1f}% increase"
+    return "no change"
+
+
+def write_results(results: list[dict[str, Any]], run_id: str, cli_version: str) -> None:
+    lines = [
+        "# Buzzcut evaluation results",
+        "",
+        "> This is a small internal sample, not a statistically powered study. Each task was run once per condition; model nondeterminism and service latency can affect results.",
+        "",
+        f"Run: `{run_id}`  ",
+        f"Codex CLI: `{cli_version}`  ",
+        f"Model: `{results[0]['model']}` with `{results[0]['reasoning']}` reasoning  ",
+        "Method: isolated temporary Git repositories; condition order alternated by task; added lines and files measured from the Git diff; token counts read from Codex `turn.completed` usage; wall time measured around `codex exec`.",
+        "",
+        "| Task | Condition | Added lines | New files | New deps | Tokens | Wall time | Tests |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for result in results:
+        usage = result["usage"]
+        tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+        status = "pass" if result["tests_passed"] else "fail"
+        if result["exit_code"]:
+            status = f"{status}; agent exit {result['exit_code']}"
+        lines.append(
+            f"| {result['title']} | {result['condition']} | {result['added_lines']} | "
+            f"{len(result['new_files'])} | {len(result['new_dependencies'])} | {tokens} | "
+            f"{result['wall_seconds']:.2f}s | {status} |"
+        )
+
+    grouped = {condition: [r for r in results if r["condition"] == condition] for condition in ("baseline", "buzzcut")}
+    totals: dict[str, dict[str, float]] = {}
+    for condition, rows in grouped.items():
+        totals[condition] = {
+            "added_lines": sum(row["added_lines"] for row in rows),
+            "new_files": sum(len(row["new_files"]) for row in rows),
+            "new_dependencies": sum(len(row["new_dependencies"]) for row in rows),
+            "tokens": sum(row["usage"].get("input_tokens", 0) + row["usage"].get("output_tokens", 0) for row in rows),
+            "wall_seconds": sum(row["wall_seconds"] for row in rows),
+        }
+
+    lines.extend(["", "Aggregate change from baseline to Buzzcut:"])
+    for label, key in (
+        ("added lines", "added_lines"),
+        ("new files", "new_files"),
+        ("new dependencies", "new_dependencies"),
+        ("tokens", "tokens"),
+        ("wall-clock time", "wall_seconds"),
+    ):
+        base = totals["baseline"][key]
+        buzz = totals["buzzcut"][key]
+        lines.append(f"- {label}: {base:g} → {buzz:g} ({change_label(base, buzz)})")
+
+    failures = [f"{row['task']}/{row['condition']}" for row in results if not row["tests_passed"] or row["exit_code"]]
+    lines.append(f"- unsuccessful runs: {', '.join(failures) if failures else 'none'}")
+    lines.extend([
+        "",
+        "`Added lines` counts textual additions in the final Git diff, including tests. `Tokens` is input plus output tokens; cached input remains part of the reported input count. `metrics.json` for this run is tracked under `eval/runs/<run id>/`; the raw JSONL, stderr and patches beside it stay local and are ignored.",
+        "",
+    ])
+    RESULTS_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task", action="append", help="Task stem to run; repeat to select multiple")
+    parser.add_argument("--model", default=os.environ.get("CODEX_MODEL", DEFAULT_MODEL))
+    parser.add_argument("--reasoning", default=os.environ.get("CODEX_REASONING", DEFAULT_REASONING))
+    parser.add_argument("--timeout", type=int, default=600, help="Seconds allowed per Codex run")
+    args = parser.parse_args()
+
+    if not shutil.which("codex"):
+        parser.error("codex CLI is not on PATH")
+
+    task_paths = sorted(TASKS_DIR.glob("*.json"))
+    if args.task:
+        selected = set(args.task)
+        task_paths = [path for path in task_paths if path.stem in selected]
+        missing = selected - {path.stem for path in task_paths}
+        if missing:
+            parser.error(f"unknown task(s): {', '.join(sorted(missing))}")
+    if not task_paths:
+        parser.error("no tasks selected")
+
+    run_id = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_dir = ROOT / "eval" / "runs" / run_id
+    results: list[dict[str, Any]] = []
+    for index, task_path in enumerate(task_paths):
+        conditions = ("baseline", "buzzcut") if index % 2 == 0 else ("buzzcut", "baseline")
+        for condition in conditions:
+            print(f"[{len(results) + 1}/{len(task_paths) * 2}] {task_path.stem}: {condition}", flush=True)
+            result = run_condition(
+                task_path,
+                condition,
+                run_dir / task_path.stem / condition,
+                args.model,
+                args.reasoning,
+                args.timeout,
+            )
+            results.append(result)
+            (run_dir / "metrics.json").write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
+
+    task_order = {path.stem: index for index, path in enumerate(task_paths)}
+    results.sort(key=lambda row: (task_order[row["task"]], row["condition"] != "baseline"))
+    cli_version = run(["codex", "--version"], ROOT).stdout.strip()
+    write_results(results, run_id, cli_version)
+    print(f"Wrote {RESULTS_PATH.relative_to(ROOT)}", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
