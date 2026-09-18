@@ -39,7 +39,28 @@ The measured overhead is a **flat 2,491 fresh input tokens per task** — the ru
 | ~50,000 tokens | 5.0% |
 | ~200,000 tokens | 1.2% |
 
-That is arithmetic on a measured constant, not a projection. What it implies — that discovery discipline should pay for itself once a repository is large enough for one avoided file listing to exceed 2,491 tokens — **has not been measured**. The eval fixtures are ten-file repositories, which is close to the worst case for Buzzcut's token cost: maximum fixed overhead, almost no exploration available to save. Treat the large-repository case as untested.
+That is arithmetic on a measured constant, not a projection. What it implies &mdash; that discovery discipline should pay for itself once a repository is large enough for one avoided file listing to exceed 2,491 tokens &mdash; **has not been measured**. The eval fixtures are ten-file repositories, which is close to the worst case for Buzzcut's token cost: maximum fixed overhead, almost no exploration available to save.
+
+#### Avoidance model
+
+If Buzzcut's budget rules prevent **one** full repository listing per task, and that listing costs roughly one line per file at ~10 tokens a line, the modelled change in price-weighted cost is:
+
+| Repository scale | Baseline context per task | Listing avoided | Modelled change | Range |
+| :--- | ---: | ---: | ---: | ---: |
+| Small (~10 files) | ~11,800 tokens | ~100 tokens | **+7.4%** *(a cost)* | &mdash; |
+| Medium (~1,000 files) | ~50,000 tokens | ~10,000 tokens | **&minus;10.6%** | &minus;7.8% to &minus;13.5% |
+| Enterprise (~10,000 files) | ~200,000 tokens | ~100,000 tokens | **&minus;44.2%** | &minus;35.1% to &minus;53.3% |
+
+**This is a model, not a benchmark result.** It is reproducible arithmetic, so check it rather than trusting it:
+
+```
+change = (2,491 - listing_tokens) x $1.25/M / baseline_cost_per_task
+baseline_cost_per_task = context_tokens x $1.25/M + $0.0258
+```
+
+The $0.0258 is the measured size-independent remainder (cached input plus output) from run `20260918T095109Z`; 2,491 is the measured fixed overhead. The range column varies the listing between 8 and 12 tokens per line.
+
+Two things the model makes obvious. On small repositories Buzzcut is a **net cost** &mdash; there is no listing worth avoiding, so break-even is not available and the measured +8.9% is the honest figure. And the whole result is load-bearing on one assumption: that the agent would otherwise have dumped the tree once per task. If your agents already search narrowly, the saving is not there to collect.
 
 ## Works with
 

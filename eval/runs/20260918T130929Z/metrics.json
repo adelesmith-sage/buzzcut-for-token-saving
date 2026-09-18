@@ -94,5 +94,134 @@
       "reasoning_output_tokens": 186
     },
     "repeat": 1
+  },
+  {
+    "task": "csv_export",
+    "title": "Add CSV export",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": false,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses the existing CSV writer",
+        "passed": false,
+        "missing": [
+          "from csv_tools import write_rows",
+          "write_rows(users,"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 0,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 31.44,
+    "usage": {
+      "input_tokens": 45446,
+      "cached_input_tokens": 35456,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1018,
+      "reasoning_output_tokens": 621
+    },
+    "repeat": 1
+  },
+  {
+    "task": "endpoint",
+    "title": "Add suspend endpoint",
+    "condition": "buzzcut",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": false,
+    "quality_passed": false,
+    "quality_checks": [
+      {
+        "description": "reuses UserService.set_status",
+        "passed": false,
+        "missing": [
+          "service.set_status(user_id, \"suspended\")"
+        ],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 0,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 36.67,
+    "usage": {
+      "input_tokens": 60002,
+      "cached_input_tokens": 54400,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1381,
+      "reasoning_output_tokens": 897
+    },
+    "repeat": 1
+  },
+  {
+    "task": "endpoint",
+    "title": "Add suspend endpoint",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses UserService.set_status",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 38.25,
+    "usage": {
+      "input_tokens": 104780,
+      "cached_input_tokens": 92800,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1253,
+      "reasoning_output_tokens": 169
+    },
+    "repeat": 1
+  },
+  {
+    "task": "feature_flag",
+    "title": "Add a refund feature flag",
+    "condition": "baseline",
+    "model": "gpt-5.6-sol",
+    "reasoning": "high",
+    "exit_code": 0,
+    "timed_out": false,
+    "tests_passed": true,
+    "quality_passed": true,
+    "quality_checks": [
+      {
+        "description": "reuses the repository's feature-flag parser",
+        "passed": true,
+        "missing": [],
+        "forbidden": []
+      }
+    ],
+    "added_lines": 4,
+    "new_files": [],
+    "new_dependencies": [],
+    "wall_seconds": 55.67,
+    "usage": {
+      "input_tokens": 105596,
+      "cached_input_tokens": 99200,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 1081,
+      "reasoning_output_tokens": 93
+    },
+    "repeat": 1
   }
 ]
